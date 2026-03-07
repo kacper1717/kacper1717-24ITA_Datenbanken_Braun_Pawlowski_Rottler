@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>📄 PDF-RAG: Vector-basierte Dokumentsuche</h2>
+    <hr>
+
+    <!-- PDF Upload Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5>Schritt 1: PDF hochladen</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="pdf_file">PDF-Datei wählen:</label>
+                    <input type="file" id="pdf_file" name="pdf_file" accept=".pdf" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-info">
+                    📤 PDF hochladen und indexieren
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5>Schritt 2: PDF durchsuchen</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="query">Deine Frage:</label>
+                    <input type="text" id="query" name="query" class="form-control"
+                           placeholder="z.B. Was ist Normalisierung?" value="{{ query }}">
+                </div>
+                <div class="form-group">
+                    <label for="topk">Anzahl Ergebnisse:</label>
+                    <input type="number" id="topk" name="topk" class="form-control"
+                           value="{{ topk }}" min="1" max="50">
+                </div>
+                <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    {% if answer %}
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <h5>💡 Antwort</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ answer }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5>📋 Gefundene Abschnitte ({{ results|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for result in results %}
+            <div class="alert alert-light border mb-3">
+                <strong>{{ result.source }} - Seite {{ result.page }}</strong>
+                <span class="badge badge-info">{{ result.score }}%</span>
+                <p class="mt-2">{{ result.text }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

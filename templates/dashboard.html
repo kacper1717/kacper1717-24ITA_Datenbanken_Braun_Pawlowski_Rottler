@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">Dashboard</h1>
+
+<div class="row g-3">
+  <!-- MySQL -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">MySQL (Source of Truth)</div>
+      <div class="card-body">
+
+        {% if data.mysql_counts and data.mysql_counts.error %}
+          <div class="alert alert-danger mb-3">
+            <strong>MySQL Fehler:</strong> {{ data.mysql_counts.error }}
+          </div>
+        {% endif %}
+
+        <ul class="list-group">
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Produkte</span>
+            <span class="fw-semibold">{{ data.mysql_counts.products or 0 }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Marken</span>
+            <span class="fw-semibold">{{ data.mysql_counts.brands or 0 }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Kategorien</span>
+            <span class="fw-semibold">{{ data.mysql_counts.categories or 0 }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Tags</span>
+            <span class="fw-semibold">{{ data.mysql_counts.tags or 0 }}</span>
+          </li>
+        </ul>
+
+        <form class="mt-3" method="post" action="{{ url_for('validate.validate') }}">
+          <button class="btn btn-outline-primary">Validate MySQL</button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Qdrant -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Qdrant (Index)</div>
+      <div class="card-body">
+
+        {% if data.qdrant_counts and data.qdrant_counts.error %}
+          <div class="alert alert-danger mb-3">
+            <strong>Qdrant Fehler:</strong> {{ data.qdrant_counts.error }}
+          </div>
+        {% endif %}
+
+        <ul class="list-group">
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Indexierte Produkte</span>
+            <span class="fw-semibold">{{ data.qdrant_counts.indexed or 0 }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Letzter Indexlauf</span>
+            <span class="fw-semibold">{{ data.qdrant_counts.last_indexed_at or "-" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Embedding Model</span>
+            <span class="fw-semibold">{{ data.qdrant_counts.embedding_model or "-" }}</span>
+          </li>
+        </ul>
+
+        {# Optional: wenn du runs_error im Backend setzt, hier anzeigen #}
+        {% if data.qdrant_counts and data.qdrant_counts.runs_error %}
+          <div class="alert alert-warning mt-3 mb-0">
+            <strong>Run-Log Hinweis:</strong> {{ data.qdrant_counts.runs_error }}
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Letzte Runs -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">Letzte Runs</div>
+      <div class="card-body p-0">
+
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th class="px-3">Zeit</th>
+                <th>Strategie</th>
+                <th class="text-end">Processed</th>
+                <th class="text-end px-3">Written</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in data.last_runs %}
+                <tr>
+                  <td class="px-3">{{ r.run_timestamp }}</td>
+                  <td>{{ r.strategy }}</td>
+                  <td class="text-end">{{ r.products_processed }}</td>
+                  <td class="text-end px-3">{{ r.products_written }}</td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-muted px-3 py-3">Keine Runs vorhanden.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

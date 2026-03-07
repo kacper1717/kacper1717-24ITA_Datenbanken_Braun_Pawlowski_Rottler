@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-3">Audit</h1>
+
+{# ----------------------------
+   Page size selector
+   ---------------------------- #}
+<form method="get" class="mb-3 d-flex align-items-center gap-2">
+  <label for="page_size" class="mb-0">
+    Einträge pro Seite:
+  </label>
+  <select
+    id="page_size"
+    name="page_size"
+    class="form-select form-select-sm w-auto"
+    onchange="this.form.submit()"
+  >
+    {% for s in [10, 20, 50, 100] %}
+      <option value="{{ s }}" {% if s == page_size %}selected{% endif %}>
+        {{ s }}
+      </option>
+    {% endfor %}
+  </select>
+  <input type="hidden" name="page" value="1">
+</form>
+
+{# ----------------------------
+   Audit table
+   ---------------------------- #}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Zeitpunkt</th>
+      <th>Strategie</th>
+      <th>Processed</th>
+      <th>Written</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in result.get("items", []) %}
+      <tr>
+        <td>{{ r.get("run_timestamp", "-") }}</td>
+        <td>{{ r.get("strategy", "-") }}</td>
+        <td class="text-success">{{ r.get("products_processed", 0) }}</td>
+        <td>{{ r.get("products_written", "-") }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="4" class="text-muted text-center">
+          Keine Audit-Einträge vorhanden
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# ----------------------------
+   Summary
+   ---------------------------- #}
+<p>
+  <strong>Gesamt:</strong> {{ result.get("total", 0) }}
+</p>
+
+{# ----------------------------
+   Pagination
+   ---------------------------- #}
+{% set total = result.get("total", 0) %}
+{% set total_pages = (total // page_size) + (1 if total % page_size else 0) %}
+
+{% if total_pages > 1 %}
+<nav aria-label="Audit Pagination">
+  <ul class="pagination">
+
+    {# Previous #}
+    <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('audit.audit', page=page-1, page_size=page_size) }}">
+        &laquo;
+      </a>
+    </li>
+
+    {# Page numbers (windowed) #}
+    {% for p in range(1, total_pages + 1) %}
+      {% if p >= page - 2 and p <= page + 2 %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+          <a class="page-link"
+             href="{{ url_for('audit.audit', page=p, page_size=page_size) }}">
+            {{ p }}
+          </a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    {# Next #}
+    <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('audit.audit', page=page+1, page_size=page_size) }}">
+        &raquo;
+      </a>
+    </li>
+
+  </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

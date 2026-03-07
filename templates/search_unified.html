@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Datenbank-Suche</h2>
+
+    <!-- Tabs -->
+    <ul
+        class="nav nav-tabs justify-content-start"
+        id="searchTabs"
+        role="tablist"
+        style="flex-direction: row !important; justify-content: flex-start !important;">
+
+        <!-- ── Projektarbeit ── -->
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if search_type == 'sql' %}active{% endif %}"
+                id="sql-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#sql-content"
+                type="button"
+                onclick="setSearchType('sql')">
+                SQL-Suche
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if search_type == 'vector' %}active{% endif %}"
+                id="vector-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#vector-content"
+                type="button"
+                onclick="setSearchType('vector')">
+                Vektorsuche
+            </button>
+        </li>
+
+        <!-- ── Zusatzfunktionen ── -->
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if search_type == 'rag' %}active{% else %}text-muted{% endif %}"
+                id="rag-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#rag-content"
+                type="button"
+                onclick="setSearchType('rag')"
+                style="{% if search_type != 'rag' %}color: #999 !important;{% endif %}">
+                RAG-LLM
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if search_type == 'graph' %}active{% else %}text-muted{% endif %}"
+                id="graph-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#graph-content"
+                type="button"
+                onclick="setSearchType('graph')"
+                style="{% if search_type != 'graph' %}color: #999 !important;{% endif %}">
+                Graph-RAG
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if search_type == 'pdf' %}active{% else %}text-muted{% endif %}"
+                id="pdf-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#pdf-content"
+                type="button"
+                onclick="setSearchType('pdf')"
+                style="{% if search_type != 'pdf' %}color: #999 !important;{% endif %}">
+                PDF-RAG
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if search_type == 'pdf_mgmt' %}active{% else %}text-muted{% endif %}"
+                id="pdf-mgmt-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#pdf-mgmt-content"
+                type="button"
+                onclick="setSearchType('pdf_mgmt')"
+                style="{% if search_type != 'pdf_mgmt' %}color: #999 !important;{% endif %}">
+                PDF-Verwaltung
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content mt-3" id="searchTabContent">
+        <!-- SQL-Suche -->
+        <div class="tab-pane fade {% if search_type == 'sql' %}show active{% endif %}" id="sql-content">
+            <div class="card">
+                <div class="card-body">
+                    <h5>SQL-Direktsuche (MySQL)</h5>
+                    <p class="text-muted">Führe SQL-Queries direkt auf der productdb-Datenbank aus</p>
+                    <form method="POST" action="{{ url_for('search.search', type='sql') }}">
+                        <div class="form-group mb-2">
+                            <label>SQL Query:</label>
+                            <textarea name="query" class="form-control" rows="4"
+                                      placeholder="z.B. SELECT * FROM products WHERE price < 100 LIMIT 10">{{ query }}</textarea>
+                            <small class="text-muted">
+                                ⚠️ Nur SELECT-Queries erlaubt. Beispiele:
+                                <code>SELECT * FROM products WHERE brand = 'Bosch'</code>
+                            </small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vektorsuche -->
+        <div class="tab-pane fade {% if search_type == 'vector' %}show active{% endif %}" id="vector-content">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Reine Vektorsuche (Produkte)</h5>
+                    <p class="text-muted">Sucht nach Ähnlichkeit in der MySQL-Produktdatenbank</p>
+                    <form method="POST" action="{{ url_for('search.search', type='vector') }}">
+                        <div class="form-group mb-2">
+                            <input type="text" name="query" class="form-control"
+                                   placeholder="z.B. Werkzeug, Schleifer..." value="{{ query }}">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>Top K:</label>
+                            <input type="number" name="topk" class="form-control" value="5" min="1" max="50">
+                        </div>
+                        <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- RAG -->
+        <div class="tab-pane fade {% if search_type == 'rag' %}show active{% endif %}" id="rag-content">
+            <div class="card">
+                <div class="card-body">
+                    <h5>RAG mit LLM (Produkte)</h5>
+                    <p class="text-muted">Vektorsuche + KI-generierte Antwort</p>
+                    <form method="POST" action="{{ url_for('search.search', type='rag') }}">
+                        <div class="form-group mb-2">
+                            <input type="text" name="query" class="form-control"
+                                   placeholder="z.B. Welche Werkzeuge gibt es?" value="{{ query }}">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>Top K:</label>
+                            <input type="number" name="topk" class="form-control" value="5" min="1" max="50">
+                        </div>
+                        <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graph-RAG -->
+        <div class="tab-pane fade {% if search_type == 'graph' %}show active{% endif %}" id="graph-content">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Graph-RAG (Qdrant + Neo4j)</h5>
+                    <p class="text-muted">Kombiniert Vektoren mit Graph-Beziehungen</p>
+                    <form method="POST" action="{{ url_for('search.search', type='graph') }}">
+                        <div class="form-group mb-2">
+                            <input type="text" name="query" class="form-control"
+                                   placeholder="z.B. Produkte von Bosch..." value="{{ query }}">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>Top K:</label>
+                            <input type="number" name="topk" class="form-control" value="5" min="1" max="50">
+                        </div>
+                        <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF-RAG -->
+        <div class="tab-pane fade {% if search_type == 'pdf' %}show active{% endif %}" id="pdf-content">
+            <div class="card">
+                <div class="card-body">
+                    <h5>PDF-RAG (Dokumentsuche)</h5>
+                    <p class="text-muted">Sucht in hochgeladenen PDF-Skripten</p>
+                    <form method="POST" action="{{ url_for('search.search', type='pdf') }}">
+                        <div class="form-group mb-2">
+                            <input type="text" name="query" class="form-control"
+                                   placeholder="z.B. Was ist Normalisierung?" value="{{ query }}">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label>Top K:</label>
+                            <input type="number" name="topk" class="form-control" value="5" min="1" max="50">
+                        </div>
+                        <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF-Verwaltung -->
+        <div class="tab-pane fade {% if search_type == 'pdf_mgmt' %}show active{% endif %}" id="pdf-mgmt-content">
+            <div class="card">
+                <div class="card-body">
+                    <h5>PDF-Verwaltung</h5>
+                    <p class="text-muted">PDF und Produktkataloge hochladen und in Qdrant indexieren</p>
+
+                    <!-- PDF-Statistiken -->
+                    <div class="alert alert-secondary mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">PDF:</small>
+                                <h5 class="mb-0"><span id="mgmtTeachingCount">-</span> PDF</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Produktkataloge:</small>
+                                <h5 class="mb-0"><span id="mgmtProductsCount">-</span> Kataloge</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unter-Tabs: PDF / Produktkatalog -->
+                    <ul class="nav nav-pills mb-3" id="pdfMgmtTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="mgmt-teaching-tab" data-bs-toggle="tab"
+                                    data-bs-target="#mgmt-teaching" type="button">PDF</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="mgmt-products-tab" data-bs-toggle="tab"
+                                    data-bs-target="#mgmt-products" type="button">Produktkatalog</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- PDF Upload -->
+                        <div class="tab-pane fade show active" id="mgmt-teaching" role="tabpanel">
+                            <form method="POST" enctype="multipart/form-data"
+                                  action="{{ url_for('pdf.upload_teaching_pdf') }}" id="mgmtTeachingForm">
+                                <div class="mb-3">
+                                    <label for="mgmtTeachingFile" class="form-label"><strong>PDF-Datei</strong></label>
+                                    <input type="file" class="form-control" id="mgmtTeachingFile"
+                                           name="pdf_file" accept=".pdf" required>
+                                    <small class="text-muted">Max. 50 MB</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mgmtTeachingDesc" class="form-label">Beschreibung (optional)</label>
+                                    <input type="text" class="form-control" id="mgmtTeachingDesc"
+                                           name="description" placeholder="z.B. Produkte File 7" maxlength="200">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">PDF hochladen & indexieren</button>
+                            </form>
+                            <div id="mgmtTeachingList" class="mt-3">
+                                <small class="text-muted">Statistiken werden geladen...</small>
+                            </div>
+                        </div>
+
+                        <!-- Produktkatalog Upload -->
+                        <div class="tab-pane fade" id="mgmt-products" role="tabpanel">
+                            <form method="POST" enctype="multipart/form-data"
+                                  action="{{ url_for('pdf.upload_product_pdf') }}" id="mgmtProductsForm">
+                                <div class="mb-3">
+                                    <label for="mgmtProductsFile" class="form-label"><strong>Produktkatalog PDF</strong></label>
+                                    <input type="file" class="form-control" id="mgmtProductsFile"
+                                           name="pdf_file" accept=".pdf" required>
+                                    <small class="text-muted">Max. 50 MB</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mgmtProductsDesc" class="form-label">Katalogname (optional)</label>
+                                    <input type="text" class="form-control" id="mgmtProductsDesc"
+                                           name="description" placeholder="z.B. Bosch Katalog 2025" maxlength="200">
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">Produktkatalog hochladen & indexieren</button>
+                            </form>
+                            <div id="mgmtProductsList" class="mt-3">
+                                <small class="text-muted">Statistiken werden geladen...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results (gemeinsam für alle) -->
+    {% if answer %}
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <h5>💡 Antwort ({% if search_type == 'pdf' %}PDF{% elif search_type == 'graph' %}Graph-RAG{% elif search_type == 'sql' %}SQL{% else %}RAG{% endif %})</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ answer }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5>📋 Ergebnisse ({{ results|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if search_type == 'sql' %}
+                <!-- SQL-Ergebnisse als Tabelle -->
+                {% if results and results|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                {% for column in results[0].keys() %}
+                                <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                            <tr>
+                                {% for value in row.values() %}
+                                <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Keine Ergebnisse gefunden.</p>
+                {% endif %}
+            {% else %}
+                <!-- Bisherige Ergebnisse für andere Suchtypen -->
+                {% for result in results %}
+                <div class="alert alert-light border mb-3">
+                    {% if search_type == 'pdf' %}
+                        <strong>{{ result.source }}</strong>
+                        <span class="badge bg-primary">Seite {{ result.page }}</span>
+                        <span class="badge bg-info text-dark">Score: {{ result.score }}%</span>
+                        <p class="mt-2">{{ result.text }}</p>
+                    {% else %}
+                        <strong>{{ result.title }}</strong>
+                        <span class="badge bg-primary">{{ result.brand }}</span>
+                        <span class="badge bg-success">{{ result.price }} €</span>
+                        {% if result.score is not none %}
+                            <span class="badge bg-info text-dark">Score: {{ (result.score * 100)|round(1) }}%</span>
+                        {% endif %}
+                        {% if result.graph_source %}
+                            <span class="badge" style="background-color: {% if result.graph_source == 'Neo4j' %}#ff6f61{% else %}#00d4ff{% endif %}; color: white;">
+                                {{ result.graph_source }}
+                            </span>
+                        {% endif %}
+                        <p class="mt-2">{{ result.doc_preview }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function setSearchType(type) {
+    window.history.pushState(null, null, "{{ url_for('search.search') }}?type=" + type);
+    // PDF-Statistiken laden wenn PDF-Verwaltung-Tab aktiviert wird
+    if (type === 'pdf_mgmt') {
+        loadPdfMgmtStats();
+    }
+}
+
+// PDF-Verwaltung: Statistiken laden
+async function loadPdfMgmtStats() {
+    try {
+        const response = await fetch('/api/pdf-stats');
+        const data = await response.json();
+
+        const tc = document.getElementById('mgmtTeachingCount');
+        const pc = document.getElementById('mgmtProductsCount');
+        if (tc) tc.textContent = data.pdf_skripte || 0;
+        if (pc) pc.textContent = data.pdf_produkte || 0;
+
+        const tl = document.getElementById('mgmtTeachingList');
+        if (tl) {
+            tl.innerHTML = data.pdf_skripte > 0
+                ? '<div class="alert alert-success border-0 mb-0 py-2">\u2713 ' + data.pdf_skripte + ' PDF in Qdrant indexiert</div>'
+                : '<small class="text-muted">Noch keine Dateien hochgeladen</small>';
+        }
+
+        const pl = document.getElementById('mgmtProductsList');
+        if (pl) {
+            pl.innerHTML = data.pdf_produkte > 0
+                ? '<div class="alert alert-success border-0 mb-0 py-2">\u2713 ' + data.pdf_produkte + ' Kataloge in Qdrant indexiert</div>'
+                : '<small class="text-muted">Noch keine Kataloge hochgeladen</small>';
+        }
+    } catch (error) {
+        console.error('PDF-Stats Fehler:', error);
+    }
+}
+
+// Stats laden wenn PDF-Verwaltung-Tab bereits aktiv ist
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('pdf-mgmt-content')?.classList.contains('show')) {
+        loadPdfMgmtStats();
+    }
+});
+</script>
+{% endblock %}

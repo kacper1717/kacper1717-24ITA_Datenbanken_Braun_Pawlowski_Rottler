@@ -1,0 +1,31 @@
+# Python / IDE
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+.vscode/
+.idea/
+
+# OS / Temp
+.DS_Store
+Thumbs.db
+
+# Daten/Artefakte, die nicht ins App-Image müssen
+mysql-init/
+data/
+qdrant_data/
+script/
+
+# Git
+.git/
+.gitignore
+
+# Env
+.env
+
+# Tests
+tests/
+

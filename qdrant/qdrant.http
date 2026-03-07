@@ -1,0 +1,95 @@
+@host = http://localhost:6333
+@collection = docs1
+
+### 1) Collection anlegen
+PUT {{host}}/collections/{{collection}}
+Content-Type: application/json
+
+{
+  "vectors": {
+    "size": 3,
+    "distance": "Cosine"
+  }
+}
+
+### 2) Punkte 1+2 upserten
+PUT {{host}}/collections/{{collection}}/points
+Content-Type: application/json
+
+{
+  "points": [
+    {
+      "id": 1,
+      "vector": [0.1, 0.2, 0.768],
+      "payload": { "text": "Python ist eine beliebte Programmiersprache", "category": "programming" }
+    },
+    {
+      "id": 2,
+      "vector": [0.2, 0.3, 0.4],
+      "payload": { "text": "Vektordatenbanken sind wichtig für KI", "category": "databases" }
+    }
+  ]
+}
+
+### 3) Punkt 3 upserten
+PUT {{host}}/collections/{{collection}}/points
+Content-Type: application/json
+
+{
+  "points": [
+    {
+      "id": 3,
+      "vector": [0.1, 0.2, 0.8],
+      "payload": { "text": "Python ist eine Programmiersprache", "category": "programming" }
+    }
+  ]
+}
+
+### 4) Vektorsuche (ohne Filter)
+POST {{host}}/collections/{{collection}}/points/search
+Content-Type: application/json
+
+{
+  "vector": [0.15, 0.25, 0.35],
+  "limit": 5,
+  "with_payload": true
+}
+
+### 5) Hybrid: Vektorsuche + Payload-Filter
+POST {{host}}/collections/{{collection}}/points/search
+Content-Type: application/json
+
+{
+  "vector": [0.1, 0.2, 0.768],
+  "filter": {
+    "must": [
+      { "key": "category", "match": { "value": "databases" } }
+    ]
+  },
+  "limit": 10,
+  "with_payload": true
+}
+
+### 6) Nur Payload filtern (Scroll)
+POST {{host}}/collections/{{collection}}/points/scroll
+Content-Type: application/json
+
+{
+  "filter": {
+    "must": [
+      { "key": "category", "match": { "value": "programming" } }
+    ]
+  },
+  "limit": 20,
+  "with_payload": true
+}
+
+### 7) Punkt inkl. Vektor zurückholen (Achtung: bei Cosine ggf. normalisiert)
+POST {{host}}/collections/{{collection}}/points/retrieve
+Content-Type: application/json
+
+{
+  "ids": [1],
+  "with_payload": true,
+  "with_vectors": true
+}

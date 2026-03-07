@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="mb-3">MySQL Produkte</h1>
+
+<table class="table table-striped table-sm">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Brand</th>
+      <th>Category</th>
+      <th>Tags</th>
+      <th class="text-end">Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in result["items"] %}
+      <tr>
+        <td>{{ p.product_id }}</td>
+        <td>{{ p.name }}</td>
+        <td>{{ p.brand }}</td>
+        <td>{{ p.category }}</td>
+        <td>
+          {% if p.tags %}
+            <span class="text-muted">[{{ p.tags | join(", ") }}]</span>
+          {% else %}
+            <span class="text-muted">–</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          {{ "%.2f"|format(p.price) }} {{ p.currency }}
+        </td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="6" class="text-muted text-center">Keine Daten.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# ===================== #}
+{# Pagination            #}
+{# ===================== #}
+
+{% if total_pages > 1 %}
+<nav aria-label="Produkt-Navigation">
+  <ul class="pagination pagination-sm justify-content-center">
+
+    <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('products.products', page=page-1, page_size=page_size) }}">
+        «
+      </a>
+    </li>
+
+    {% for p in range(1, total_pages + 1) %}
+      <li class="page-item {% if p == page %}active{% endif %}">
+        <a class="page-link"
+           href="{{ url_for('products.products', page=p, page_size=page_size) }}">
+          {{ p }}
+        </a>
+      </li>
+    {% endfor %}
+
+    <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('products.products', page=page+1, page_size=page_size) }}">
+        »
+      </a>
+    </li>
+
+  </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

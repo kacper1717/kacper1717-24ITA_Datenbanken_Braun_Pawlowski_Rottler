@@ -1,0 +1,194 @@
+"""
+Neo4j Repository - Data Access Layer for Neo4j Graph Database
+Handles all Neo4j-specific graph operations.
+"""
+from abc import ABC, abstractmethod
+from typing import Optional
+import logging
+
+from neo4j import GraphDatabase
+
+log = logging.getLogger(__name__)
+
+
+class Neo4jRepository(ABC):
+    """Abstract base class for Neo4j graph database operations"""
+
+    @abstractmethod
+    def get_product_relationships(self, mysql_ids: list[int]) -> dict[int, dict]:
+        """Get product relationships and enrichment data from Neo4j"""
+        pass
+
+    @abstractmethod
+    def execute_cypher(self, query: str, parameters: Optional[dict] = None) -> list:
+        """Execute a raw Cypher query"""
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close the Neo4j driver connection"""
+        pass
+
+
+class NoOpNeo4jRepository(Neo4jRepository):
+    """No-op repository used when Neo4j is not configured."""
+
+    def get_product_relationships(self, mysql_ids: list[int]) -> dict[int, dict]:
+        raise NotImplementedError("TODO: implement no-op behavior or remove this class.")
+
+    def execute_cypher(self, query: str, parameters: Optional[dict] = None) -> list:
+        raise NotImplementedError("TODO: implement no-op behavior or remove this class.")
+
+    def close(self) -> None:
+        raise NotImplementedError("TODO: implement no-op behavior or remove this class.")
+
+
+class Neo4jRepositoryImpl(Neo4jRepository):
+    """Concrete implementation of Neo4j repository"""
+
+    def __init__(self, uri: str, user: str, password: str):
+        """
+        Initialize Neo4j repository.
+
+        Args:
+            uri: Neo4j URI (e.g., 'bolt://localhost:7687')
+            user: Neo4j username
+            password: Neo4j password
+        """
+        raise NotImplementedError("TODO: implement Neo4j repository initialization.")
+
+    def get_product_relationships(self, mysql_ids: list[int]) -> dict[int, dict]:
+        """
+        Get product relationships and enrichment data from Neo4j.
+
+        Loads additional product data from the graph database based on MySQL IDs.
+        Adapts to the graph schema: uses relationships if available, falls back to properties.
+
+        Args:
+            mysql_ids: List of MySQL product IDs
+
+        Returns:
+            Dictionary mapping mysql_id to enrichment data (title, brand, category, tags)
+
+        Example:
+            {
+                123: {
+                    "title": "Product Name",
+                    "brand": "Brand Name",
+                    "category": "Category Name",
+                    "tags": ["tag1", "tag2"]
+                },
+                ...
+            }
+        """
+        raise NotImplementedError("TODO: implement Neo4j relationships query.")
+
+    def execute_cypher(self, query: str, parameters: Optional[dict] = None) -> list:
+        """
+        Execute a raw Cypher query.
+
+        Args:
+            query: Cypher query string
+            parameters: Optional query parameters
+
+        Returns:
+            List of result records
+
+        Raises:
+            Exception: On query execution errors
+        """
+        raise NotImplementedError("TODO: implement Cypher execution.")
+
+    def close(self) -> None:
+        """Close the Neo4j driver connection"""
+        raise NotImplementedError("TODO: implement Neo4j close.")
+
+    # ======================
+    # High-level operations
+    # ======================
+
+    def get_product_by_mysql_id(self, mysql_id: int) -> Optional[dict]:
+        """
+        Get a single product from Neo4j by MySQL ID.
+
+        Args:
+            mysql_id: MySQL product ID
+
+        Returns:
+            Product dictionary or None if not found
+        """
+        raise NotImplementedError("TODO: implement single product lookup.")
+
+    def get_products_by_category(self, category_name: str, limit: int = 10) -> list[dict]:
+        """
+        Get products in a specific category.
+
+        Args:
+            category_name: Category name
+            limit: Maximum number of results
+
+        Returns:
+            List of product dictionaries
+        """
+        raise NotImplementedError("TODO: implement category lookup.")
+
+    def get_products_by_brand(self, brand_name: str, limit: int = 10) -> list[dict]:
+        """
+        Get products from a specific brand.
+
+        Args:
+            brand_name: Brand name
+            limit: Maximum number of results
+
+        Returns:
+            List of product dictionaries
+        """
+        raise NotImplementedError("TODO: implement brand lookup.")
+
+    def get_related_products(self, mysql_id: int, limit: int = 5) -> list[dict]:
+        """
+        Get products related to a given product (same category or brand).
+
+        Args:
+            mysql_id: MySQL product ID
+            limit: Maximum number of results
+
+        Returns:
+            List of related product dictionaries
+        """
+        raise NotImplementedError("TODO: implement related product lookup.")
+
+    def count_products(self) -> int:
+        """
+        Count total number of products in Neo4j.
+
+        Returns:
+            Total product count
+        """
+        raise NotImplementedError("TODO: implement product count.")
+
+    def count_products_by_category(self) -> dict[str, int]:
+        """
+        Count products grouped by category.
+
+        Returns:
+            Dictionary mapping category names to counts
+        """
+        raise NotImplementedError("TODO: implement category counts.")
+
+    def count_products_by_brand(self) -> dict[str, int]:
+        """
+        Count products grouped by brand.
+
+        Returns:
+            Dictionary mapping brand names to counts
+        """
+        raise NotImplementedError("TODO: implement brand counts.")
+
+    def __enter__(self):
+        """Context manager entry"""
+        raise NotImplementedError("TODO: implement context manager entry.")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - closes connection"""
+        raise NotImplementedError("TODO: implement context manager exit.")

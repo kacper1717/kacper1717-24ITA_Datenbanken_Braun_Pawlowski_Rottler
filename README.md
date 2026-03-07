@@ -1,92 +1,74 @@
-Studiengang: Informatik STG-TINF24ITA  
-Modul: Datenbanksysteme  
-Dozent: Karsten Keßler  
-Bearbeitungsform: Gruppenarbeit  
-Abgabe: Skripte + PDF + Lauffähige App + Kurzpräsentation  
+Projektarbeit: Relationale Datenbanken, semantische Suche
+
+Studiengang: Informatik / Datenbanksysteme  
+Dozent: Karsten Keßler, DHBW Stuttgart    
+Technologien: MySQL 8.4 · Qdrant · Python · SQL
 
 ---
 
-📦 Projektarbeit: Relationale Datenbank und darauf aufbauend Vektorsuche (optional Graph-RAG-Erweiterung)
+## Branch
+
+Dieser Branch enthält nur die Klassen- und Methodensignaturen in `routes/`, `services/` und `repositories/`. Die Implementierungen müssen von den Studierenden ergänzt werden. Tests sind für die Studierenden nicht verpflichtend. Konfigurationen werden mit einer Dummy-`.env` mitgeliefert; `.env.example` enthält leere Platzhalter.
+
+### Mindest-Konfiguration (.env)
+
+Zum Start der App genügt die mitgelieferte Dummy-`.env` (die App zeigt dann nur den Hinweis). Sobald die Features implementiert sind, benötigt man mindestens:
+
+Pflicht (für DB-Funktionen):
+
+-   `MYSQL_URL`
+
+Pflicht (für Vektorsuche):
+
+-   `QDRANT_URL`
+-   `EMBEDDING_MODEL`
+-   `EMBEDDING_DIM`
+
+Optional (nur wenn genutzt):
+
+-   `OPENAI_API_KEY` und `LLM_MODEL` für RAG/LLM-Antworten
+-   `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` für Graph-Enrichment
+
+---
 
 🎯 Ziel der Projektarbeit
 
-Ziel dieser Projektarbeit ist es, klassische relationale Datenbanksysteme mit modernen semantischen Suchverfahren zu kombinieren und deren unterschiedliche Stärken, Grenzen und Einsatzgebiete praktisch zu analysieren.  
-Die Studierenden sollen zeigen: 
-- Strukturierte Daten sauber relational modellieren
-- Transaktionen, Trigger und Stored Procedures gezielt einsetzen 
-- Indizes verstehen und begründen 
-- Strukturierte Produktdaten in semantische Vektoren überführen 
-- Suchergebnisse analysieren, vergleichen und kritisch reflektieren 
-- Moderne Architekturen einordnen
+Ziel dieser Projektarbeit ist es, klassische relationale Datenbanksysteme mit modernen semantischen Such- und Kontextverfahren zu kombinieren und deren jeweilige Stärken, Grenzen und Einsatzgebiete zu verstehen. Im Mittelpunkt steht nicht der Einsatz einzelner Tools, sondern das Zusammenspiel unterschiedlicher Datenbank- und Suchparadigmen:
 
-🧱 Ausgangslage 
+-   relationale Datenbanken als strukturierte, konsistente Source of Truth
+-   Vektor-Datenbanken zur semantischen Ähnlichkeitssuche
+-   optionale graphbasierte Modelle zur Kontext- und Beziehungsanreicherung
 
-- Alle Studierenden arbeiten auf dem gleichen Produktdatenbestand  
-- Der Datenbestand wird nicht inhaltlich verändert, sondern nur erweitert  
-- Die relationale Datenbank ist die Source of Truth 
-- Vektor- und RAG-Komponenten dienen ausschließlich der Suche und Analyse
-- Fokus liegt auf Datenbank- und Architekturverständnis
+🧠 Lernziele
 
----
-🔄 Aufgabe 1.1: DB-Schema erstellen
+Die Studierenden sollen im Rahmen des Projekts zeigen, dass sie:
 
-Analysieren Sie den bereitgestellten CSV-Produktdatenbestand und erstellen Sie ein relationales Datenbankschema, das die folgenden Entitäten und Beziehungen umfasst:
-1. products
-2. brands
-3. categories
-4. tags
-5. etl_run_logs
+-   einen realistischen Produktdatenbestand sauber relational modellieren
+-   klassische Datenbankmechanismen wie Transaktionen, Trigger und Stored Procedures gezielt einsetzen
+-   Indizes verstehen, begründen und im Kontext von Performance bewerten können
+-   strukturierte Daten in textuelle Repräsentationen und semantische Vektoren überführen
+-   semantische Suchanfragen implementieren, analysieren und kritisch bewerten
+-   moderne Sucharchitekturen fachlich einordnen, statt sie nur anzuwenden
+-   den Unterschied zwischen Datenhaltung, Suche und Kontextinterpretation klar trennen können
 
-✏️  Aufgabe 1.2: Import von Daten
+🧱 Projektcharakter und Rahmenbedingungen
 
-Importieren Sie die bereitgestellten Daten in Ihre relationale Datenbank. Achten Sie dabei auf die Einhaltung der Normalformen und die Vermeidung von Redundanzen.
+Alle Studierenden arbeiten mit dem gleichen Ausgangsdatenbestand. Die Datenbasis wird nicht inhaltlich verändert, sondern logisch erweitert. Die relationale Datenbank bildet die verbindliche Datenquelle. Semantische und weitere Komponenten dienen ausschließlich der Suche, Analyse und Kontextbildung. Unterschiedliche Lösungsansätze sind ausdrücklich erwünscht. Wichtig: Der Datenbestand ist identisch – die Lösungen sind es nicht.
 
-🧮 Aufgabe 2.1: Transaktionen
+Gesamt-Workflow (konzeptionell)
 
-Implementieren Sie **eine Transaktion**, die ein komplettes Produkt mit allen Beziehungen anlegt:
+Das Projekt orientiert sich an folgendem konzeptionellen Daten- und Verarbeitungsfluss: CSV → Relationale Datenbank (MySQL) → strukturierte & textuelle Repräsentationen → Embeddings → Vektor-Datenbank (Qdrant) → semantische Suche → optionale Kontextanreicherung (z. B. Graph-basierte Modelle) → RAG-gestützte LLM-Antworten.
 
-1. **Neues Produkt** einfügen
-2. **Marke** zuordnen (ggf. neu anlegen)
-3. **Kategorie** verknüpfen
-4. **Mindestens 2 Tags** verknüpfen (N:M Beziehung)
+🧩 Einordnung moderner Verfahren (optional)
 
-⚙️ Aufgabe 2.2: Trigger
+Das Projekt bietet Raum und Grundlage, moderne Konzepte wie Retrieval-Augmented Generation (RAG) einzuordnen:
 
-Implementieren Sie **2 Trigger** mit fachlichem Mehrwert.
+-   Vektorsuche liefert relevante Inhalte
+-   relationale Strukturen sichern Korrektheit und Konsistenz
+-   graphbasierte Modelle können Beziehungen und Kontext sichtbar machen Diese Konzepte sind kein Selbstzweck, sondern dienen der reflektierten Analyse moderner Datenarchitekturen.
 
-🧠 Aufgabe 2.3: Stored Procedures
+🧭 Leitgedanke des Projekts
 
-Implementieren Sie **eine Stored Procedure** mit Geschäftslogik.
+Relationale Datenbanken sichern Wahrheit – semantische Verfahren erweitern den Blick.
 
-🚀 Aufgabe 2.4: Indizes & Performance
-
-Erstellen Sie **2 sinnvolle Indizes** für häufige Queries.
-
-🔍 Aufgabe 2.5: Vektor-Datenbank & Semantische Suche
-
-...
-
-
-🧠 Optionale Bonusarbeit: Graph-RAG
-
-....
-
-🎤 Präsentation (10–15 Minuten):
-
-- Lauffähige App mit entsprechenden Docker-Containern
-- Architekturüberblick
-- Designentscheidung
-- Lessons Learnt
-
----
-Termine:
-
-Abgabe Teil 1 ➡️ 12.04.2026  
-Alle SQL-Skripte aus 1. und ERM als PDF
-
-Abgabe Teil 2 ➡️ 17.05.2026
-    
-...
-
----
-
+Hinweis: GraphDB- und LLM-gestuetzte RAG-Verfahren sind optional. Der Schwerpunkt des Projekts liegt auf relationalen Datenbanken.

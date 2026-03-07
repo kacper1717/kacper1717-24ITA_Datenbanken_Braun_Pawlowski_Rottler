@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">Index</h1>
+
+<div class="card mb-3">
+  <div class="card-header">Status</div>
+  <div class="card-body">
+    <p>Indexierte Produkte: <b>{{ status.count_indexed }}</b></p>
+    <p>Letztes indexed_at: <b>{{ status.last_indexed_at or "-" }}</b></p>
+    <p>Embedding Model: <b>{{ status.embedding_model or "-" }}</b></p>
+    {% set info = status.collection_info or {} %}
+    <p>Qdrant Collection: <b>{{ info.name or "-" }}</b></p>
+    <p>Vector Size: <b>{{ info.vector_size or "-" }}</b></p>
+    <p>Distance: <b>{{ info.distance or "-" }}</b></p>
+    <p>Points (Qdrant): <b>{{ info.points_count or "-" }}</b></p>
+    <p>HNSW m: <b>{{ info.hnsw_m or "-" }}</b></p>
+    <p>HNSW ef_construct: <b>{{ info.hnsw_ef_construct or "-" }}</b></p>
+
+    <form method="post" action="{{ url_for('index.truncate_index') }}">
+      <button class="btn btn-outline-danger">Index leeren</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Indexlauf starten</div>
+  <div class="card-body">
+    <form method="post">
+      <div class="row g-2">
+        <div class="col-md-2">
+          <label class="form-label">Strategie</label>
+          <select class="form-select" name="strategy">
+            <option value="C" selected>Clear</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Limit (optional)</label>
+          <input class="form-control" name="limit" placeholder="z.B. 50">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Batch Size</label>
+          <input class="form-control" name="batch_size" value="64">
+        </div>
+      </div>
+      <button class="btn btn-primary mt-3">Start</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

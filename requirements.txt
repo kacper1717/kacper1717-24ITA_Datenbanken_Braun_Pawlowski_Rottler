@@ -1,0 +1,20 @@
+Flask==3.0.3
+SQLAlchemy==2.0.32
+PyMySQL==1.1.1
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+sentence-transformers==3.0.1
+torch>=2.2.0
+qdrant-client>=1.7.0
+cryptography
+openai>=1.0.0
+neo4j>=5.0
+pdfplumber
+
+
+
+
+# Testing
+pytest>=7.4.0
+pytest-mock>=3.11.0
+pytest-cov>=4.1.0

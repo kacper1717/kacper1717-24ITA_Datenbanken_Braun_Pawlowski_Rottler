@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-3">Graph-RAG Suche</h1>
+
+<form method="post" class="row g-2 mb-3">
+  <div class="col-md-7">
+    <input
+      class="form-control"
+      name="query"
+      placeholder="z.B. Ich suche ein Rollenlager"
+      value="{{ query }}"
+    >
+  </div>
+
+  <div class="col-md-1">
+    <input class="form-control" name="topk" value="{{ topk }}">
+  </div>
+
+  <div class="col-md-2">
+    <button class="btn btn-primary w-100">Antwort erzeugen</button>
+  </div>
+</form>
+
+{% if answer %}
+<div class="card mb-3">
+  <div class="card-header">LLM-Antwort</div>
+  <div class="card-body">
+    <div style="white-space: pre-wrap;">{{ answer }}</div>
+  </div>
+</div>
+{% endif %}
+
+{% if results %}
+<div class="card">
+  <div class="card-header">
+    Treffer (Retrieval / Quellen)
+    <small class="text-muted">— Score = cosine similarity (Qdrant)</small>
+  </div>
+
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead>
+        <tr>
+          <th>
+            Score<br>
+            <small class="text-muted">cosine similarity</small>
+          </th>
+          <th>Name</th>
+          <th>Brand</th>
+          <th>Category</th>
+          <th>Tags</th>
+          <th>Price</th>
+          <th>Graph-Quelle</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for r in results %}
+        <tr>
+          <td>{{ r.score }}</td>
+          <td>{{ r.name or r.title }}</td>
+          <td>{{ r.brand }}</td>
+          <td>{{ r.category }}</td>
+          <td>{{ (r.tags or [])|join(', ') }}</td>
+
+          <td>
+            {% if r.price is not none %}
+              {{ r.price }} EUR
+            {% endif %}
+          </td>
+
+          <td>
+            {% set gs = r.get('graph_source') %}
+            {% if gs %}
+              <span class="badge bg-success">{{ gs }}</span>
+            {% else %}
+              <span class="text-muted">–</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="mb-5">
+                <h1 style="color: #667eea; margin-bottom: 10px;">PDF-Verwaltung</h1>
+                <p class="text-muted">Laden Sie PDF und Produktkataloge für die Vektordatenbank-Suche hoch</p>
+                <hr>
+            </div>
+
+            <!-- PDF-Statistiken Banner -->
+            <div class="alert alert-secondary mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">PDF:</small>
+                        <h5 class="mb-0"><span id="teachingCount">-</span> PDF</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">Produktkataloge:</small>
+                        <h5 class="mb-0"><span id="productsCount">-</span> Kataloge</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- zwei Tabs für unterschiedliche PDF-Typen -->
+            <ul class="nav nav-tabs mb-4" id="pdfTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button 
+                        class="nav-link active" 
+                        id="teaching-tab" 
+                        data-bs-toggle="tab" 
+                        data-bs-target="#teaching" 
+                        type="button">
+                        PDF
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button 
+                        class="nav-link" 
+                        id="products-tab" 
+                        data-bs-toggle="tab" 
+                        data-bs-target="#products" 
+                        type="button">
+                        Produktkatalog
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="pdfTabContent">
+                
+                <!-- LEHRMATERIAL TAB -->
+                <div class="tab-pane fade show active" id="teaching" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            
+                            <div class="mb-4">
+                                <h5 style="color: #764ba2;">PDF hochladen</h5>
+                                <p class="text-muted small">PDF mit Produkten</p>
+                            </div>
+
+                            <!-- Upload Form -->
+                            <form method="POST" enctype="multipart/form-data" action="{{ url_for('pdf.upload_teaching_pdf') }}" id="teachingForm">
+                                <div class="mb-4">
+                                    <label for="teachingFile" class="form-label">
+                                        <strong>PDF-Datei auswählen</strong>
+                                    </label>
+                                    <input 
+                                        type="file" 
+                                        class="form-control form-control-lg" 
+                                        id="teachingFile"
+                                        name="pdf_file" 
+                                        accept=".pdf"
+                                        required
+                                        style="border: 2px dashed #667eea; border-radius: 8px; padding: 30px 15px;">
+                                    <small class="text-muted d-block mt-2">
+                                        Unterstütze Formate: PDF | Max. Dateigröße: 50 MB
+                                    </small>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="teachingDesc" class="form-label">
+                                        <strong>Beschreibung (optional)</strong>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="teachingDesc"
+                                        name="description"
+                                        placeholder="z.B. Produkte File 7"
+                                        maxlength="200">
+                                    <small class="text-muted">Hilft bei der Verwaltung mehrerer PDFs</small>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <strong>PDF hochladen & indexieren</strong>
+                                </button>
+                            </form>
+
+                            <hr class="my-4">
+
+                            <!-- Bereits hochgeladene Dateien -->
+                            <div>
+                                <h6 style="color: #333;">Hochgeladene PDF</h6>
+                                <div class="alert alert-light border-1 mt-3" style="background: #f9f9f9;">
+                                    <strong id="teachingCount">-</strong> Dokumente indexiert in Qdrant
+                                </div>
+                                <div id="teachingList" class="mt-3">
+                                    <p class="text-muted text-center small">Statistiken werden geladen...</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRODUKTKATALOG TAB -->
+                <div class="tab-pane fade" id="products" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            
+                            <div class="mb-4">
+                                <h5 style="color: #009688;">Produktkataloge hochladen</h5>
+                                <p class="text-muted small">Externe Produktdatenbanken, Kataloge, Preislisten, etc.</p>
+                            </div>
+
+
+                            <!-- Upload Form -->
+                            <form method="POST" enctype="multipart/form-data" action="{{ url_for('pdf.upload_product_pdf') }}" id="productsForm">
+                                <div class="mb-4">
+                                    <label for="productsFile" class="form-label">
+                                        <strong>Produktkatalog PDF</strong>
+                                    </label>
+                                    <input 
+                                        type="file" 
+                                        class="form-control form-control-lg" 
+                                        id="productsFile"
+                                        name="pdf_file" 
+                                        accept=".pdf"
+                                        required
+                                        style="border: 2px dashed #009688; border-radius: 8px; padding: 30px 15px;">
+                                    <small class="text-muted d-block mt-2">
+                                        Beispiel: Bosch-Katalog, externe Preisliste, etc. | Max. 50 MB
+                                    </small>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="productsDesc" class="form-label">
+                                        <strong>Katalogname (optional)</strong>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="productsDesc"
+                                        name="description"
+                                        placeholder="z.B. Bosch Katalog 2025"
+                                        maxlength="200">
+                                </div>
+
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <strong>Produktkatalog hochladen & indexieren</strong>
+                                </button>
+                            </form>
+
+                            <hr class="my-4">
+
+                            <!-- Bereits hochgeladene Dateien -->
+                            <div>
+                                <h6 style="color: #333;">Hochgeladene Kataloge</h6>
+                                <div class="alert alert-light border-1 mt-3" style="background: #f9f9f9;">
+                                    <strong id="productsCount">-</strong> Kataloge indexiert in Qdrant
+                                </div>
+                                <div id="productsList" class="mt-3">
+                                    <p class="text-muted text-center small">Statistiken werden geladen...</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // PDF-Statistiken laden
+    async function loadPdfStats() {
+        try {
+            const response = await fetch('/api/pdf-stats');
+            const data = await response.json();
+            
+            // Zahlen aktualisieren
+            document.getElementById('teachingCount').textContent = data.pdf_skripte || 0;
+            document.getElementById('productsCount').textContent = data.pdf_produkte || 0;
+            
+            // Info-Text aktualisieren
+            const teachingInfo = document.querySelector('#teachingList');
+            if (teachingInfo && data.pdf_skripte > 0) {
+                teachingInfo.innerHTML = `<div class="alert alert-success border-0 mb-0">
+                    ✓ ${data.pdf_skripte} PDF in Qdrant indexiert
+                </div>`;
+            } else if (teachingInfo) {
+                teachingInfo.innerHTML = '<p class="text-muted text-center">Noch keine Dateien hochgeladen</p>';
+            }
+
+            const productsInfo = document.querySelector('#productsList');
+            if (productsInfo && data.pdf_produkte > 0) {
+                productsInfo.innerHTML = `<div class="alert alert-success border-0 mb-0">
+                    ✓ ${data.pdf_produkte} PDF in Qdrant indexiert
+                </div>`;
+            } else if (productsInfo) {
+                productsInfo.innerHTML = '<p class="text-muted text-center">Noch keine Kataloge hochgeladen</p>';
+            }
+        } catch (error) {
+            console.error('Fehler beim Laden der PDF-Statistiken:', error);
+            document.getElementById('teachingCount').textContent = '?';
+            document.getElementById('productsCount').textContent = '?';
+        }
+    }
+
+    // Stats beim Laden der Seite abrufen
+    document.addEventListener('DOMContentLoaded', function() {
+        loadPdfStats();
+        // Alle 5 Sekunden neu laden (optional)
+        // setInterval(loadPdfStats, 5000);
+    });
+
+    // Nach erfolgreichem Upload neu laden
+    document.getElementById('teachingForm')?.addEventListener('submit', function(e) {
+        setTimeout(loadPdfStats, 1500);
+    });
+
+    document.getElementById('productsForm')?.addEventListener('submit', function(e) {
+        setTimeout(loadPdfStats, 1500);
+    });
+
+    // Datei-Input Labels aktualisieren
+    document.getElementById('teachingFile').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        if (fileName) {
+            document.querySelector('[for="teachingFile"]').textContent = `✓ ${fileName}`;
+        }
+    });
+
+    document.getElementById('productsFile').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        if (fileName) {
+            document.querySelector('[for="productsFile"]').textContent = `✓ ${fileName}`;
+        }
+    });
+</script>
+
+{% endblock %}
