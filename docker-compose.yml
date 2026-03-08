@@ -1,17 +1,18 @@
 services:
   mysql:
     image: mysql:8.4
-    container_name: project-mysql
-    env_file: .env
+    container_name: skeleton-mysql
+    env_file: ../.env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-productdb}
       MYSQL_USER: ${MYSQL_USER:-app}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${MYSQL_HOST_PORT:-3396}:3306"
+      # Port verschoben auf 3316
+      - "${SKELETON_MYSQL_HOST_PORT:-3316}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - skeleton_mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d:ro
       - ./data:/csv:ro
     command: >
@@ -26,60 +27,66 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - dhbw_net
+      - skeleton_net
 
   adminer:
     image: adminer:latest
-    container_name: project-adminer
+    container_name: skeleton-adminer
     ports:
-      - "${ADMINER_HOST_PORT:-8980}:8080"
+      # Port verschoben auf 8990
+      - "${SKELETON_ADMINER_HOST_PORT:-8990}:8080"
     depends_on:
       - mysql
     restart: unless-stopped
     networks:
-      - dhbw_net
+      - skeleton_net
 
   qdrant:
     image: qdrant/qdrant:v1.16.2
-    container_name: project-qdrant
+    container_name: skeleton-qdrant
     ports:
-      - "${QDRANT_HTTP_HOST_PORT:-6333}:6333"
-      - "${QDRANT_GRPC_HOST_PORT:-6334}:6334"
+      # Ports verschoben auf 6343 und 6344
+      - "${SKELETON_QDRANT_HTTP_HOST_PORT:-6343}:6333"
+      - "${SKELETON_QDRANT_GRPC_HOST_PORT:-6344}:6334"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - skeleton_qdrant_data:/qdrant/storage
     restart: unless-stopped
     networks:
-      - dhbw_net
+      - skeleton_net
 
   neo4j:
     image: neo4j:5
-    container_name: project-neo4j
+    container_name: skeleton-neo4j
     ports:
-      - "${NEO4J_HTTP_HOST_PORT:-7474}:7474"   # Web UI
-      - "${NEO4J_BOLT_HOST_PORT:-7687}:7687"   # Bolt
+      # Ports verschoben auf 7484 und 7697
+      - "${SKELETON_NEO4J_HTTP_HOST_PORT:-7484}:7474"   # Web UI
+      - "${SKELETON_NEO4J_BOLT_HOST_PORT:-7697}:7687"   # Bolt
     environment:
       - NEO4J_AUTH=${NEO4J_AUTH:-neo4j/admin123}
     volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
+      - skeleton_neo4j_data:/data
+      - skeleton_neo4j_logs:/logs
     restart: unless-stopped
     networks:
-      - dhbw_net
+      - skeleton_net
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    container_name: project-app
+    container_name: skeleton-app
     ports:
-      - "${APP_HOST_PORT:-8080}:5000"
-    env_file: .env
+      # HIER IST DEIN GEWÜNSCHTER PORT 8081
+      - "${SKELETON_APP_HOST_PORT:-8081}:5000"
+    env_file: ../.env
     environment:
       FLASK_ENV: ${FLASK_ENV:-development}
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-dev-secret}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       LLM_MODEL: ${LLM_MODEL}
+      # Die internen Service-Namen (mysql, qdrant, neo4j) bleiben gleich,
+      # da Docker sie innerhalb des skeleton_net automatisch richtig auflöst!
       MYSQL_URL: mysql+pymysql://${MYSQL_USER:-app}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-productdb}
       QDRANT_URL: http://qdrant:6333
       EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
@@ -89,7 +96,7 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-admin123}
       PDF_UPLOAD_DIR: /data/pdfs
     volumes:
-      - pdf_uploads:/data/pdfs
+      - skeleton_pdf_uploads:/data/pdfs
       - ./logs:/app/logs
     depends_on:
       - mysql
@@ -97,15 +104,17 @@ services:
       - neo4j
     restart: unless-stopped
     networks:
-      - dhbw_net
+      - skeleton_net
 
+# Isolierte Festplatten für das Skeleton
 volumes:
-  mysql_data:
-  qdrant_data:
-  neo4j_data:
-  neo4j_logs:
-  pdf_uploads:
+  skeleton_mysql_data:
+  skeleton_qdrant_data:
+  skeleton_neo4j_data:
+  skeleton_neo4j_logs:
+  skeleton_pdf_uploads:
 
+# Isoliertes Netzwerk für das Skeleton
 networks:
-  dhbw_net:
+  skeleton_net:
     driver: bridge

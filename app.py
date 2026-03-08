@@ -136,7 +136,7 @@ def create_app():
     Flask application factory.
 
     Creates and configures the Flask application with all blueprints.
-    Uses environment variables for configuration (see .env file).
+    Uses environment variables for configuration (see .env.example file).
     """
     base_dir = os.path.abspath(os.path.dirname(__file__))
     app = Flask(
@@ -167,7 +167,7 @@ def create_app():
                 "MySQL-Session konnte nicht initialisiert werden (MYSQL_URL/Netz/Container prüfen)."
             )
     else:
-        log.warning("MYSQL_URL fehlt; DB-Initialisierung wird im Student-Branch uebersprungen.")
+        log.warning("MYSQL_URL fehlt; DB-Initialisierung wird im Skeleton-Branch uebersprungen.")
 
     @app.errorhandler(NotImplementedError)
     def _not_implemented(error):

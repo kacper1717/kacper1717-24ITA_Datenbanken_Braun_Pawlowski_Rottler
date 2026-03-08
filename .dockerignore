@@ -24,7 +24,7 @@ script/
 .gitignore
 
 # Env
-.env
+.env.example
 
 # Tests
 tests/

@@ -1,8 +1,8 @@
-Projektarbeit: Relationale Datenbanken, semantische Suche
+# Projektarbeit: Relationale Datenbanken, semantische Suche
 
-Studiengang: Informatik / Datenbanksysteme  
-Dozent: Karsten Keßler, DHBW Stuttgart    
-Technologien: MySQL 8.4 · Qdrant · Python · SQL
+**Studiengang:** Informatik / Datenbanksysteme  
+**Dozent:** Karsten Keßler, DHBW Stuttgart    
+**Technologien:** MySQL 8.4 · Qdrant · Python · SQL
 
 ---
 
@@ -14,24 +14,21 @@ Dieser Branch enthält nur die Klassen- und Methodensignaturen in `routes/`, `se
 
 Zum Start der App genügt die mitgelieferte Dummy-`.env` (die App zeigt dann nur den Hinweis). Sobald die Features implementiert sind, benötigt man mindestens:
 
-Pflicht (für DB-Funktionen):
-
+**Pflicht (für DB-Funktionen):**
 -   `MYSQL_URL`
 
-Pflicht (für Vektorsuche):
-
+**Pflicht (für Vektorsuche):**
 -   `QDRANT_URL`
 -   `EMBEDDING_MODEL`
 -   `EMBEDDING_DIM`
 
-Optional (nur wenn genutzt):
-
+**Optional (nur wenn genutzt):**
 -   `OPENAI_API_KEY` und `LLM_MODEL` für RAG/LLM-Antworten
 -   `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` für Graph-Enrichment
 
 ---
 
-🎯 Ziel der Projektarbeit
+## 🎯 Ziel der Projektarbeit
 
 Ziel dieser Projektarbeit ist es, klassische relationale Datenbanksysteme mit modernen semantischen Such- und Kontextverfahren zu kombinieren und deren jeweilige Stärken, Grenzen und Einsatzgebiete zu verstehen. Im Mittelpunkt steht nicht der Einsatz einzelner Tools, sondern das Zusammenspiel unterschiedlicher Datenbank- und Suchparadigmen:
 
@@ -39,7 +36,7 @@ Ziel dieser Projektarbeit ist es, klassische relationale Datenbanksysteme mit mo
 -   Vektor-Datenbanken zur semantischen Ähnlichkeitssuche
 -   optionale graphbasierte Modelle zur Kontext- und Beziehungsanreicherung
 
-🧠 Lernziele
+## 🧠 Lernziele
 
 Die Studierenden sollen im Rahmen des Projekts zeigen, dass sie:
 
@@ -51,24 +48,28 @@ Die Studierenden sollen im Rahmen des Projekts zeigen, dass sie:
 -   moderne Sucharchitekturen fachlich einordnen, statt sie nur anzuwenden
 -   den Unterschied zwischen Datenhaltung, Suche und Kontextinterpretation klar trennen können
 
-🧱 Projektcharakter und Rahmenbedingungen
+## 🧱 Projektcharakter und Rahmenbedingungen
 
 Alle Studierenden arbeiten mit dem gleichen Ausgangsdatenbestand. Die Datenbasis wird nicht inhaltlich verändert, sondern logisch erweitert. Die relationale Datenbank bildet die verbindliche Datenquelle. Semantische und weitere Komponenten dienen ausschließlich der Suche, Analyse und Kontextbildung. Unterschiedliche Lösungsansätze sind ausdrücklich erwünscht. Wichtig: Der Datenbestand ist identisch – die Lösungen sind es nicht.
 
-Gesamt-Workflow (konzeptionell)
+**Gesamt-Workflow (konzeptionell)**
+Das Projekt orientiert sich an folgendem konzeptionellen Daten- und Verarbeitungsfluss: 
+*CSV → Relationale Datenbank (MySQL) → strukturierte & textuelle Repräsentationen → Embeddings → Vektor-Datenbank (Qdrant) → semantische Suche → optionale Kontextanreicherung (z. B. Graph-basierte Modelle) → RAG-gestützte LLM-Antworten.*
 
-Das Projekt orientiert sich an folgendem konzeptionellen Daten- und Verarbeitungsfluss: CSV → Relationale Datenbank (MySQL) → strukturierte & textuelle Repräsentationen → Embeddings → Vektor-Datenbank (Qdrant) → semantische Suche → optionale Kontextanreicherung (z. B. Graph-basierte Modelle) → RAG-gestützte LLM-Antworten.
-
-🧩 Einordnung moderner Verfahren (optional)
+## 🧩 Einordnung moderner Verfahren (optional)
 
 Das Projekt bietet Raum und Grundlage, moderne Konzepte wie Retrieval-Augmented Generation (RAG) einzuordnen:
 
 -   Vektorsuche liefert relevante Inhalte
 -   relationale Strukturen sichern Korrektheit und Konsistenz
--   graphbasierte Modelle können Beziehungen und Kontext sichtbar machen Diese Konzepte sind kein Selbstzweck, sondern dienen der reflektierten Analyse moderner Datenarchitekturen.
+-   graphbasierte Modelle können Beziehungen und Kontext sichtbar machen 
 
-🧭 Leitgedanke des Projekts
+Diese Konzepte sind kein Selbstzweck, sondern dienen der reflektierten Analyse moderner Datenarchitekturen. 
 
-Relationale Datenbanken sichern Wahrheit – semantische Verfahren erweitern den Blick.
+> 💡 **Weiterführende Materialien zu LLMs:** Ergänzende Informationen, Erklärungen und Hintergründe zum Thema Large Language Models (LLM) findet man unter: **[https://tutor.kkessler.de/llm](https://tutor.kkessler.de/llm)**
 
-Hinweis: GraphDB- und LLM-gestuetzte RAG-Verfahren sind optional. Der Schwerpunkt des Projekts liegt auf relationalen Datenbanken.
+## 🧭 Leitgedanke des Projekts
+
+*Relationale Datenbanken sichern Wahrheit – semantische Verfahren erweitern den Blick.*
+
+*(Hinweis: GraphDB- und LLM-gestützte RAG-Verfahren sind optional. Der Schwerpunkt des Projekts liegt auf relationalen Datenbanken.)*

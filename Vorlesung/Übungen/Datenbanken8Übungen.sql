@@ -153,6 +153,6 @@ SELECT * FROM DDL_TEST;
 -- -------------------------------------------
 -- Abschlussmeldung
 SELECT
-  'Datenbanken8.sql erfolgreich durchgelaufen.' AS status,
+  'Datenbanken8Übungen.sql erfolgreich durchgelaufen.' AS status,
   NOW() AS executed_at;
  
