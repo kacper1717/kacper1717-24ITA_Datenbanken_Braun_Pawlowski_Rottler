@@ -1,45 +1,45 @@
--------------------------------------------------
---- Szenario:
--------------------------------------------------
+-- -----------------------------------------------
+-- - Szenario: DML
+-- -----------------------------------------------
+-- =============================================================================
+-- SQL DML Skript – Zusätzliche SQL-Statements aus der Vorlesung "Datenbanken 9 – SQL DML"
+-- Kurs: Informatik 24ITA, DHBW Stuttgart
+-- Ziel-DBMS: MySQL 8.4
+-- =============================================================================
 
--------------------------------------------------
+-- Sicherung:
+DROP TABLE IF EXISTS STUDENT2526_BACKUP;
+CREATE TABLE STUDENT2526_BACKUP LIKE STUDENT2526;
+INSERT STUDENT2526_BACKUP SELECT * FROM STUDENT2526;
 
---------------------------------
+-- Reihenfolge: erst abhaengige Tabellen droppen, dann Eltern-Tabellen
+DROP TABLE IF EXISTS KLAUSUR2526;
+DROP TABLE IF EXISTS STUDENT2526;
+DROP TABLE IF EXISTS FACHBEREICH2526;
 
--- SELECT * INTO [PURE2].[pure].[ViewConfig_Field_05032022] FROM [PURE2].[pure].[ViewConfigField]
+CREATE TABLE FACHBEREICH2526 (FB NUMERIC(2) NOT NULL,
+ BEZEICHNUNG VARCHAR(40) NOT NULL,
+ PRIMARY KEY (FB));
 
-/*ALTER TABLE `Kessler_Test_Kessler`.`KURS_SEM3`
-DROP FOREIGN KEY `FK_KURS_THEMA`;
-ALTER TABLE `Kessler_Test_Kessler`.`KURS_SEM3`
-DROP INDEX `IX_KURS_TNR` ;
-;
-*/
-
-/*
-DB:CRUD	            HTTP Action
-Create (Insert)  	POST
-Read (Select) 	    GET
-Update 	            PUT
-Delete 	            DELETE
-*/
-
---- Sicherung:
-CREATE TABLE student_backup LIKE student;
-INSERT student_backup SELECT * FROM student;
-
-DROP DATABASE IF EXISTS STUDENT;
-CREATE TABLE STUDENT (MATNR NUMERIC(7) NOT NULL,
+CREATE TABLE STUDENT2526 (MATNR NUMERIC(7) NOT NULL,
  NAME VARCHAR(20) NOT NULL,
  VORNAME VARCHAR(15) NOT NULL,
  EMAIL VARCHAR(100) NULL,
- FB decimal(2) NOT NULL,
- BIRTHDAY DATE);
+ FB DECIMAL(2) NOT NULL,
+ BIRTHDAY DATE,
+ PRIMARY KEY (MATNR),
+ FOREIGN KEY (FB) REFERENCES FACHBEREICH2526(FB));
 
-DROP DATABASE IF EXISTS FACHBEREICH;
-CREATE TABLE FACHBEREICH (FB NUMERIC(2) NOT NULL,
- BEZEICHNUNG VARCHAR(40) NOT NULL);
+CREATE TABLE KLAUSUR2526 (
+ KLAUSUR_ID INT NOT NULL AUTO_INCREMENT,
+ MATNR NUMERIC(7) NOT NULL,
+ FACH VARCHAR(40) NOT NULL,
+ RESULTAT DECIMAL(2,1) NOT NULL,
+ DATUM DATE,
+ PRIMARY KEY (KLAUSUR_ID),
+ FOREIGN KEY (MATNR) REFERENCES STUDENT2526(MATNR) ON DELETE CASCADE);
 
-INSERT INTO FACHBEREICH (FB, BEZEICHNUNG)
+INSERT INTO FACHBEREICH2526 (FB, BEZEICHNUNG)
 VALUES
 (1,'Mathematik'),
 (2,'Informatik'),
@@ -52,7 +52,7 @@ VALUES
 (9,'Kryptologie'),
 (10,'Data Science');
 
-INSERT INTO STUDENT (MATNR,NAME,VORNAME,EMAIL,FB, BIRTHDAY)
+INSERT INTO STUDENT2526 (MATNR,NAME,VORNAME,EMAIL,FB, BIRTHDAY)
 VALUES
  ( 1000,'Rivalee','Westphal','Westphal.Rivalee@fooschule.de',9,'1998-07-30' ),
  ( 1001,'Katharina','Ivens','Ivens.Katharina@fooschule.de',8,'2005-11-01' ),
@@ -1055,124 +1055,173 @@ VALUES
  ( 1998,'Catharine','Imelida','Imelida.Catharine@fooschule.de',3,'1986-09-16' ),
  ( 1999,'Justinn','Dichy','Dichy.Justinn@fooschule.de',4,'1985-08-27' );
 
----------------------------------------------------------------------------------
+-- -------------------------------------------------------------------------------
+
+INSERT INTO KLAUSUR2526 (MATNR, FACH, RESULTAT, DATUM)
+VALUES
+ (1000, 'Kryptologie', 2.3, '2025-01-15'),
+ (1001, 'Elektrotechnik', 1.7, '2025-01-15'),
+ (1002, 'Informatik', 1.0, '2025-01-20'),
+ (1003, 'Kryptologie', 3.7, '2025-01-20'),
+ (1004, 'Informatik', 2.0, '2025-01-20'),
+ (1005, 'BWL', 4.0, '2025-02-01'),
+ (1006, 'Informatik', 1.3, '2025-02-01'),
+ (1007, 'Elektrotechnik', 2.7, '2025-02-01'),
+ (1008, 'Physik', 1.0, '2025-02-05'),
+ (1009, 'Data Science', 1.7, '2025-02-05'),
+ (1010, 'BWL', 3.0, '2025-02-05'),
+ (1011, 'Luft- und Raumfahrttechnik', 2.3, '2025-02-10'),
+ (1012, 'Data Science', 5.0, '2025-02-10'),
+ (1013, 'BWL', 1.3, '2025-02-10'),
+ (1014, 'Mathematik', 1.0, '2025-02-15'),
+ (1015, 'Luft- und Raumfahrttechnik', 2.7, '2025-02-15'),
+ (1016, 'Elektrotechnik', 3.3, '2025-02-15'),
+ (1017, 'Informatik', 4.0, '2025-03-01'),
+ (1018, 'BWL', 2.0, '2025-03-01'),
+ (1019, 'Kryptologie', 1.7, '2025-03-01'),
+ (1020, 'Kryptologie', 2.0, '2025-03-05'),
+ (1002, 'Mathematik', 1.3, '2025-03-05'),
+ (1008, 'Mathematik', 2.0, '2025-03-05'),
+ (1014, 'Physik', 1.7, '2025-03-10'),
+ (1000, 'Mathematik', 1.0, '2025-03-10'),
+ (1005, 'Mathematik', 3.3, '2025-03-10'),
+ (1010, 'Mathematik', 2.7, '2025-03-15'),
+ (1015, 'Mathematik', 3.0, '2025-03-15'),
+ (1020, 'Mathematik', 4.0, '2025-03-15'),
+ (1001, 'Mathematik', 2.3, '2025-03-20');
 
 
-SELECT * FROM student; -- einfache Abfrage
-select Name, Vorname from student; -- Spalten einschränken
-select count(*) from student; -- Datensätze zählen
-select Name, Vorname from student where Name = 'Shaine'; -- Selektieren
-select distinct name from student where Name = 'Shaine'; -- Doppelgänger eliminieren
-select name from student where Name = 'Shaine' and VORNAME = 'Lanita'; -- Selektieren mit AND NOT OR
-select * from student where FB IN (1,2); -- Vergleich
-select * from student where FB BETWEEN 1 And 3;
-select * from student where NAME like 'l%';
-select * from student where NAME like 'lo%';
-select * from student where NAME like 'lor%';
-select * from student where NAME like 'lor%' and Vorname like '%d';
 
-SELECT * FROM student as s
-join fachbereich fb on fb.FB = s.FB;
+SELECT * FROM STUDENT2526 LIMIT 10; -- einfache Abfrage
 
-SELECT s.NAME, fb.Bezeichnung FROM student as s
-join fachbereich fb on fb.FB = s.FB;
+select Name, Vorname from STUDENT2526; -- Spalten einschränken
+select count(*) from STUDENT2526; -- Datensätze zählen
+select Name, Vorname from STUDENT2526 where Name = 'Shaine'; -- Selektieren
+select distinct name from STUDENT2526 where Name = 'Shaine'; -- Doppelgänger eliminieren
+select name from STUDENT2526 where Name = 'Shaine' and VORNAME = 'Lanita'; -- Selektieren mit AND NOT OR
+select * from STUDENT2526 where FB IN (1,2); -- Vergleich
+select * from STUDENT2526 where FB BETWEEN 1 And 3;
+select * from STUDENT2526 where NAME like 'l%';
+select * from STUDENT2526 where NAME like 'lo%';
+select * from STUDENT2526 where NAME like 'lor%';
+select * from STUDENT2526 where NAME like 'lor%' and Vorname like '%d';
 
-SELECT s.NAME, fb.Bezeichnung, fb.FB FROM student as s
-join fachbereich fb on fb.FB = s.FB
+SELECT * FROM STUDENT2526 as s
+join FACHBEREICH2526 fb on fb.FB = s.FB;
+
+SELECT s.NAME, fb.Bezeichnung FROM STUDENT2526 as s
+join FACHBEREICH2526 fb on fb.FB = s.FB;
+
+SELECT s.NAME, fb.Bezeichnung, fb.FB FROM STUDENT2526 as s
+join FACHBEREICH2526 fb on fb.FB = s.FB
 where fb.FB > 3 and s.Name like '%lil%';
 
 
-select * from KLAUSUR k
-join STUDENT s on
-k.MATNR = s.MATNR
-join FACHBEREICH fb on
-fb.FB = s.FB
+-- Top 10: Die 10 besten Klausurergebnisse (niedrigste Note = beste Note)
+SELECT s.MATNR, s.NAME, s.VORNAME, k.FACH, k.RESULTAT, k.DATUM
+FROM KLAUSUR2526 k
+JOIN STUDENT2526 s ON k.MATNR = s.MATNR
+ORDER BY k.RESULTAT ASC
+LIMIT 10;
 
--- -- noch ein Join
+-- Top 10: Die 10 Fachbereiche mit den meisten Studierenden
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) AS Anzahl
+FROM STUDENT2526 s
+JOIN FACHBEREICH2526 fb ON fb.FB = s.FB
+GROUP BY fb.FB, fb.BEZEICHNUNG
+ORDER BY Anzahl DESC
+LIMIT 10;
 
-SELECT s.FB, count(*) FROM student s group by s.FB; -- Gruppieren
+-- Top 10: Die 10 aeltesten Studierenden
+SELECT s.MATNR, s.NAME, s.VORNAME, s.BIRTHDAY, fb.BEZEICHNUNG
+FROM STUDENT2526 s
+JOIN FACHBEREICH2526 fb ON fb.FB = s.FB
+ORDER BY s.BIRTHDAY ASC
+LIMIT 10;
 
-SELECT max(FB) FROM student; -- Aggregatfunktionen
-SELECT min(FB) FROM student ;
-SELECT avg(FB) FROM student ;
-SELECT sum(FB) FROM student ;
-SELECT count(FB) FROM student;
 
-SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM student as s -- Gruppieren mit Join
-join fachbereich fb on fb.FB = s.FB
+-- Noch ein Join
+
+SELECT s.FB, count(*) FROM STUDENT2526 s group by s.FB; -- Gruppieren
+
+SELECT max(FB) FROM STUDENT2526; -- Aggregatfunktionen
+SELECT min(FB) FROM STUDENT2526 ;
+SELECT avg(FB) FROM STUDENT2526 ;
+SELECT sum(FB) FROM STUDENT2526 ;
+SELECT count(FB) FROM STUDENT2526;
+
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM STUDENT2526 as s -- Gruppieren mit Join
+join FACHBEREICH2526 fb on fb.FB = s.FB
 group by fb.FB;
 
-SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM student as s -- Gruppieren mit Join + Having
-join fachbereich fb on fb.FB = s.FB
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM STUDENT2526 as s -- Gruppieren mit Join + Having
+join FACHBEREICH2526 fb on fb.FB = s.FB
 group by fb.FB
 having count(*) > 100;
 
-SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM student as s -- Gruppieren mit Join + Having + Where
-join fachbereich fb on fb.FB = s.FB
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM STUDENT2526 as s -- Gruppieren mit Join + Having + Where
+join FACHBEREICH2526 fb on fb.FB = s.FB
 where s.NAME like 'lo%'
 group by fb.FB
 having count(*) > 3;
 
-SELECT * FROM student order by NAME DESC; -- einfache Sortierung
+SELECT * FROM STUDENT2526 order by NAME DESC; -- einfache Sortierung
 
-SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM student as s -- Ergebnisse sortieren
-join fachbereich fb on fb.FB = s.FB
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM STUDENT2526 as s -- Ergebnisse sortieren
+join FACHBEREICH2526 fb on fb.FB = s.FB
 group by fb.FB
 order by count(*) DESC;
 
-SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM student as s -- Ergebnisse sortieren
-join fachbereich fb on fb.FB = s.FB
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM STUDENT2526 as s -- Ergebnisse sortieren
+join FACHBEREICH2526 fb on fb.FB = s.FB
 group by fb.FB
 order by count(*) DESC, fb.BEZEICHNUNG;
 
-SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM student as s -- Ergebnisse sortieren
-join fachbereich fb on fb.FB = s.FB
-group by fb.FB
-order by fb.BEZEICHNUNG;
+SELECT fb.FB, fb.BEZEICHNUNG, count(*) FROM STUDENT2526 as s -- Ergebnisse sortieren
+join FACHBEREICH2526 fb on fb.FB = s.FB
+group by fb.FB order by fb.BEZEICHNUNG;
 
-SELECT * FROM student order by NAME DESC LIMIT 10; -- Ergebnisse limitieren
+SELECT * FROM STUDENT2526 order by NAME DESC LIMIT 10; -- Ergebnisse limitieren
 
-SELECT * FROM student s where s.FB= 1 union SELECT * FROM student s where s.FB= 2; -- Abfragen kombinieren
+SELECT * FROM STUDENT2526 s where s.FB= 1 union SELECT * FROM STUDENT2526 s where s.FB= 2; -- Abfragen kombinieren
 -- alternativ:-
-SELECT * FROM student s where s.FB= 1 OR s.FB= 2;
+SELECT * FROM STUDENT2526 s where s.FB= 1 OR s.FB= 2;
 
-select * from student where MATNR = (select round(avg(MATNR),0) from student) -- geschachtelt/Kombination
-
-
-select s.MATNR, s.NAME from STUDENT s where s.MATNR = (select MATNR from KLAUSUR k where k.RESULTAT =4.0) -- Subqueries
-select s.MATNR, s.NAME from STUDENT s where s.MATNR IN (select MATNR from KLAUSUR k where k.RESULTAT >4)
-select s.MATNR, s.NAME from STUDENT s where s.MATNR = ANY (select MATNR from KLAUSUR k where k.RESULTAT >2.0) -- irgend ein Wert der > 2
-select s.MATNR, s.NAME from STUDENT s where s.MATNR = ALL (select MATNR from KLAUSUR k where k.RESULTAT >2.0) -- true, wenn alle Werte > 2 (also: false)
+select * from STUDENT2526 where MATNR = (select round(avg(MATNR),0) from STUDENT2526); -- geschachtelt/Kombination
 
 
---- Zeichkettenoperationen:
+select s.MATNR, s.NAME from STUDENT2526 s where s.MATNR = (select MATNR from KLAUSUR2526 k where k.RESULTAT =4.0 LIMIT 1); -- Subqueries
+select s.MATNR, s.NAME from STUDENT2526 s where s.MATNR IN (select MATNR from KLAUSUR2526 k where k.RESULTAT >4);
+select s.MATNR, s.NAME from STUDENT2526 s where s.MATNR = ANY (select MATNR from KLAUSUR2526 k where k.RESULTAT >2.0); -- irgend ein Wert der > 2
+select s.MATNR, s.NAME from STUDENT2526 s where s.MATNR = ALL (select MATNR from KLAUSUR2526 k where k.RESULTAT >2.0); -- true, wenn alle Werte > 2 (also: false)
+
+
+-- Zeichkettenoperationen:
 select
 s.MATNR, s.NAME, upper(s.name), replace(s.Name, s.name, 'HALLO')
-from STUDENT s limit 10
+from STUDENT2526 s limit 10;
 
---- Datumoperationen
+-- Datumoperationen
 select
 s.MATNR, s.NAME, s.BIRTHDAY, day(s.BIRTHDAY), date_add(s.BIRTHDAY, INTERVAL 10 DAY)
-from STUDENT s limit 10
+from STUDENT2526 s limit 10;
 
 
 
------updates:
+-- Updates:
 
-update student set NAME = 'Update' where MATNR = 1000
-update student set NAME = 'Update' where MATNR IN (1022, 1028)
+update STUDENT2526 set NAME = 'Update' where MATNR = 1000;
+update STUDENT2526 set NAME = 'Update' where MATNR IN (1022, 1028);
 
 
-update student s1, (SELECT * from fachbereich fb where fb.FB = 2) as s2
+update STUDENT2526 s1, (SELECT * from FACHBEREICH2526 fb where fb.FB = 2) as s2
 set s1.NAME = 'verknüpft'
-where s1.FB = s2.FB
+where s1.FB = s2.FB;
 
 
---- delete:
-delete from student where MATNR =  1004
-delete from student where MATNR Between 1010 and 1030;
-delete from student where MATNR Between 1040 and 1060 LIMIT 5
+-- Delete:
+delete from STUDENT2526 where MATNR =  1004;
+delete from STUDENT2526 where MATNR Between 1010 and 1030;
+delete from STUDENT2526 where MATNR Between 1040 and 1060 LIMIT 5;
 
-
-------------------------------------------------------------------------------
-
+-- ----------------------------------------------------------------------------
