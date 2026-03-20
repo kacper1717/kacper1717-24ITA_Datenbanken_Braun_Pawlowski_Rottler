@@ -18,6 +18,8 @@ mysql-init/
 data/
 qdrant_data/
 script/
+logs/
+*.log
 
 # Git
 .git/

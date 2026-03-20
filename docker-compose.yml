@@ -19,6 +19,7 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_0900_ai_ci
       --secure-file-priv=""
+      --mysql-native-password=ON
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD} || exit 1"]
       interval: 10s
