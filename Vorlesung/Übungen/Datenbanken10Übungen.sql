@@ -5,7 +5,7 @@
 -- ============================================================================
 -- Voraussetzung: MySQL 8.4 mit InnoDB (Standard-Engine)
 -- Am besten in VS Code mit 3 Terminals und separaten MySQL-Sessions ausführen
--- Verbindung: docker exec -it skeleton-mysql mysql -u root -p transaktionen_demo
+-- Verbindung: docker exec -it skeleton-mysql mysql -u root -p
 -- ============================================================================
 
 
@@ -359,33 +359,43 @@ COMMIT;
 -- ============================================================================
 
 -- MVCC-Testdaten
+drop database if exists mvcc;
+create database mvcc;
+USE mvcc;
 DROP TABLE IF EXISTS mvcc_demo;
 CREATE TABLE mvcc_demo (
     id   INT PRIMARY KEY,
     wert INT
 );
 INSERT INTO mvcc_demo VALUES (1, 100), (2, 200), (3, 300);
+select * from mvcc_demo;
 
 -- === SESSION 1 (Terminal 1) ===
--- SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
--- START TRANSACTION;
--- SELECT * FROM mvcc_demo;
---   → zeigt: 100, 200, 300 (Snapshot wird erstellt)
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+START TRANSACTION;
+SELECT * FROM mvcc_demo;
+-- → zeigt: 100, 200, 300
+-- → Snapshot wird beim ersten SELECT erstellt
 
 -- === SESSION 2 (Terminal 2) ===
--- UPDATE mvcc_demo SET wert = 999 WHERE id = 2;
--- COMMIT;
+START TRANSACTION;
+UPDATE mvcc_demo SET wert = 999 WHERE id = 2;
+COMMIT;
+-- → Daten werden geändert (id=2 → 999)
 
 -- === SESSION 1 (Terminal 1) ===
--- SELECT * FROM mvcc_demo;
---   → zeigt IMMER NOCH: 100, 200, 300 (liest aus dem Snapshot!)
--- COMMIT;
+SELECT * FROM mvcc_demo;
+--   → zeigt IMMER NOCH: 100, 200, 300
+--   → liest aus dem Snapshot!
+
+COMMIT;
 
 -- === SESSION 1 (Terminal 1) ===
--- SELECT * FROM mvcc_demo;
---   → JETZT zeigt es: 100, 999, 300 (neuer Snapshot nach COMMIT)
+SELECT * FROM mvcc_demo;
+--   → JETZT zeigt es: 100, 999, 300
+--   → neuer Snapshot nach COMMIT
 
--- → MVCC ermöglicht konsistentes Lesen OHNE Sperren!
+-- → MVCC ermöglicht konsistentes Lesen, ohne dass Leser und Schreiber sich blockieren.
 
 
 -- ============================================================================
@@ -422,136 +432,160 @@ SHOW ENGINE INNODB STATUS;
 -- 8b. DEADLOCK mit WARTEGRAPH (3 Transaktionen)
 -- ============================================================================
 -- Benötigt DREI separate Sessions (Terminal 1, Terminal 2, Terminal 3)
+-- Verbindung in DREI Terminals: docker exec -it skeleton-mysql mysql -u root -p
 -- Entspricht dem Wartegraph-Beispiel: T1 → T2 → T3 → T1
 
 -- Vorbereitung (in einer beliebigen Session):
--- USE transaktionen_demo;
--- DROP TABLE IF EXISTS ressourcen;
--- CREATE TABLE ressourcen (
---     res_id   CHAR(1) PRIMARY KEY,
---     wert     INT NOT NULL
--- );
--- INSERT INTO ressourcen VALUES ('A', 10), ('B', 20), ('C', 30), ('D', 40);
+show databases;
+drop database if exists transaktion_demo;
+create database transaktion_demo;
+USE transaktion_demo;
+DROP TABLE IF EXISTS ressourcen;
+CREATE TABLE ressourcen (
+    res_id   CHAR(1) PRIMARY KEY,
+    wert     INT NOT NULL
+);
+INSERT INTO ressourcen VALUES ('A', 10), ('B', 20), ('C', 30), ('D', 40);
+select * from ressourcen;
 
 -- Ablauf:
 --
---         t1     t2     t3     t4     t5     t6     t7     t8     t9
---   T1    S(A)   S(D)          S(B)
+--         t1     t2     t3     t4     t5     t6     t7     t8
+--   T1    S(A)   S(D)                        S(B)
 --   T2                  X(B)                        X(C)
---   T3                                S(D)   S(C)                 X(A)
---
+--   T3                         S(D)   S(C)                 X(A)
+
 -- Wartegraph:
---   t4: T1 will S(B) → T2 hält X(B) → T1 wartet auf T2  (T1→T2)
+--   t6: T1 will S(B) → T2 hält X(B) → T1 wartet auf T2  (T1→T2)
 --   t7: T2 will X(C) → T3 hält S(C) → T2 wartet auf T3  (T2→T3)
---   t9: T3 will X(A) → T1 hält S(A) → T3 wartet auf T1  (T3→T1)
+--   t8: T3 will X(A) → T1 hält S(A) → T3 wartet auf T1  (T3→T1)
 --   → Zyklus: T1 → T2 → T3 → T1 = DEADLOCK!
 
 -- SCHRITT 1: Alle drei Sessions starten ihre Transaktionen
 -- und holen sich die ersten Locks (t1–t3)
 
 -- === SESSION 1 (Terminal 1) ===
--- START TRANSACTION;
--- SELECT * FROM ressourcen WHERE res_id = 'A' FOR SHARE;    -- t1: S(A)
--- SELECT * FROM ressourcen WHERE res_id = 'D' FOR SHARE;    -- t2: S(D)
+-- select connection_id();
+USE transaktion_demo;
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'A' FOR SHARE;    -- t1: S(A)
+SELECT * FROM ressourcen WHERE res_id = 'D' FOR SHARE;    -- t2: S(D)
 
 -- === SESSION 2 (Terminal 2) ===
--- START TRANSACTION;
--- SELECT * FROM ressourcen WHERE res_id = 'B' FOR UPDATE;   -- t3: X(B)
+-- select connection_id();
+USE transaktion_demo;
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'B' FOR UPDATE;   -- t3: X(B)
 
 -- === SESSION 3 (Terminal 3) ===
--- START TRANSACTION;
--- SELECT * FROM ressourcen WHERE res_id = 'D' FOR SHARE;    -- t5: S(D) → OK, S+S verträglich
--- SELECT * FROM ressourcen WHERE res_id = 'C' FOR SHARE;    -- t6: S(C)
+-- select connection_id();
+USE transaktion_demo;
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'D' FOR SHARE;    -- t4: S(D) → OK, S+S verträglich
+SELECT * FROM ressourcen WHERE res_id = 'C' FOR SHARE;    -- t5: S(C)
 
 -- SCHRITT 2: Jetzt die Konflikte auslösen
 
 -- === SESSION 1 (Terminal 1) ===
--- SELECT * FROM ressourcen WHERE res_id = 'B' FOR SHARE;
---   → t4: T1 will S(B), aber T2 hält X(B) → T1 BLOCKIERT (wartet auf T2)
+SELECT * FROM ressourcen WHERE res_id = 'B' FOR SHARE;
+--   → t6: T1 will S(B), aber T2 hält X(B) → T1 BLOCKIERT (wartet auf T2)
 
 -- === SESSION 2 (Terminal 2) ===
--- UPDATE ressourcen SET wert = 99 WHERE res_id = 'C';
+UPDATE ressourcen SET wert = 99 WHERE res_id = 'C';
 --   → t7: T2 will X(C), aber T3 hält S(C) → T2 BLOCKIERT (wartet auf T3)
 
 -- === SESSION 3 (Terminal 3) ===
--- UPDATE ressourcen SET wert = 99 WHERE res_id = 'A';
---   → t9: T3 will X(A), aber T1 hält S(A) → DEADLOCK erkannt!
+UPDATE ressourcen SET wert = 99 WHERE res_id = 'A';
+--   → t8: T3 will X(A), aber T1 hält S(A) → DEADLOCK erkannt!
 --   → MySQL bricht eine der drei Transaktionen ab (diejenige mit geringstem Aufwand)
 --   → ERROR 1213 (40001): Deadlock found when trying to get lock
 
 -- SCHRITT 3: Deadlock analysieren
--- SHOW ENGINE INNODB STATUS;
+ SHOW ENGINE INNODB STATUS\G
 --   → Unter "LATEST DETECTED DEADLOCK" sieht man den Zyklus
 --   → MySQL zeigt welche Transaktion abgebrochen wurde ("WE ROLL BACK TRANSACTION ...")
 
 -- Die anderen beiden Transaktionen können jetzt weiterlaufen:
 -- (in den nicht-abgebrochenen Sessions)
--- COMMIT;
+COMMIT;
 
 -- Aufräumen:
--- DROP TABLE IF EXISTS ressourcen;
+DROP TABLE IF EXISTS ressourcen;
 
 
 -- ============================================================================
 -- 8c. WAIT-DIE UND WOUND-WAIT (Deadlock-Prävention mit Zeitstempeln)
 -- ============================================================================
--- Beide Strategien VERHINDERN Deadlocks proaktiv (anders als Erkennung in 8/8b).
--- Grundidee: Jede Transaktion erhält beim Start einen Zeitstempel (t).
---            Konflikte werden anhand des Alters (alt = früher Zeitstempel) aufgelöst.
+-- Beide Strategien VERHINDERN Deadlocks proaktiv.
+-- Grundidee: Jede Transaktion erhält beim Start einen Zeitstempel.
+--            Konflikte werden anhand des Alters (alt = früher gestartet) aufgelöst.
 --
--- HINWEIS: MySQL implementiert Wait-Die/Wound-Wait nicht nativ.
---          Das Verhalten wird hier konzeptionell mit SLEEP() simuliert.
---          MySQL nutzt intern einen Timeout (innodb_lock_wait_timeout = 50 s).
+-- WICHTIG:
+-- MySQL implementiert Wait-Die und Wound-Wait NICHT nativ.
+-- Die folgenden Abläufe zeigen nur reale Sperrkonflikte in MySQL.
+-- Die Entscheidung "warten" oder "abbrechen" wird anschließend
+-- THEORETISCH nach den Regeln interpretiert.
 
--- ── WAIT-DIE ("Wait if older – Die if younger") ──────────────────────────────
+-- ============================================================================
+-- WAIT-DIE ("Wait if older – Die if younger")
+-- ============================================================================
 -- Regel:
---   • Ältere T fordert Sperre an → darf warten
---   • Jüngere T fordert Sperre an → wird abgebrochen ("stirbt")
--- Entscheidung liegt bei der ANFRAGENDEN Transaktion.
+--   • Ältere T fordert Sperre an  → darf warten
+--   • Jüngere T fordert Sperre an → wird abgebrochen
+--
+-- Merksatz:
+--   Alt wartet, jung stirbt.
 
 -- === SESSION 1 (Terminal 1) – Ältere Transaktion (Zeitstempel t=10) ===
--- START TRANSACTION;
--- SELECT * FROM konten WHERE konto_id = 1 FOR UPDATE;
---   → hält X-Lock auf Konto 1
--- SELECT SLEEP(30);
---   → simuliert lange Verarbeitung (hält Lock 30 Sekunden)
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'A' FOR UPDATE;
+--  → T1 hält X-Lock auf Ressource A
+SELECT SLEEP(60);
+--   → simuliert lange Verarbeitung
 
 -- === SESSION 2 (Terminal 2) – Jüngere Transaktion (Zeitstempel t=20) ===
--- START TRANSACTION;
--- SELECT * FROM konten WHERE konto_id = 1 FOR UPDATE;
---   → Wait-Die: T2 ist JÜNGER als T1 → T2 wird abgebrochen
---   → ERROR 1205: Lock wait timeout exceeded; try restarting transaction
--- ROLLBACK;
---   → T2 kann später neu gestartet werden
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'A' FOR UPDATE;
+-- MySQL: T2 wartet auf den Lock von T1.
+-- Theorie (Wait-Die): Da T2 jünger ist als T1, würde T2 sofort abgebrochen.
+ROLLBACK;
+-- Nach der MySQL-Demo manuell zurücksetzen;
+-- in der Theorie von Wait-Die wäre T2 bereits vorher abgebrochen worden.
 
 -- === SESSION 1 (Terminal 1) ===
--- COMMIT;  -- T1 beendet regulär
+COMMIT;  -- T1 beendet regulär
 
 
--- ── WOUND-WAIT ("Wound if older – Wait if younger") ──────────────────────────
+-- ============================================================================
+-- WOUND-WAIT ("Wound if older – Wait if younger")
+-- ============================================================================
 -- Regel:
---   • Ältere T fordert Sperre an → "verwundet" jüngere T (bricht sie ab)
+--   • Ältere T fordert Sperre an  → jüngere wird abgebrochen
 --   • Jüngere T fordert Sperre an → muss warten
--- Entscheidung liegt bei der HALTENDEN Transaktion.
+--
+-- Merksatz:
+--   Alt verwundet, jung wartet.
 
 -- === SESSION 2 (Terminal 2) – Jüngere Transaktion (Zeitstempel t=20) ===
--- START TRANSACTION;
--- SELECT * FROM konten WHERE konto_id = 1 FOR UPDATE;
---   → hält X-Lock auf Konto 1
--- SELECT SLEEP(30);
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'A' FOR UPDATE;
+-- → T2 hält X-Lock auf A
+ SELECT SLEEP(60);
 --   → simuliert lange Verarbeitung
 
 -- === SESSION 1 (Terminal 1) – Ältere Transaktion (Zeitstempel t=10) ===
--- START TRANSACTION;
--- SELECT * FROM konten WHERE konto_id = 1 FOR UPDATE;
---   → Wound-Wait: T1 ist ÄLTER als T2 → T2 wird "verwundet" (abgebrochen)
---   → T1 bekommt den Lock, muss NICHT warten
+START TRANSACTION;
+SELECT * FROM ressourcen WHERE res_id = 'A' FOR UPDATE;
+-- MySQL: T1 wartet auf den Lock von T2.
+-- Theorie (Wound-Wait): T1 ist älter → würde T2 abbrechen
+-- und den Lock sofort bekommen.
 
--- === SESSION 2 (Terminal 2) ===
--- → automatisches ROLLBACK durch das System
+-- === SESSION 2 ===
+ROLLBACK;
+-- Aufräumen nach der Demo
 
--- === SESSION 1 (Terminal 1) ===
--- COMMIT;
+-- === SESSION 1 ===
+COMMIT;
 
 
 -- ── Vergleich ────────────────────────────────────────────────────────────────
