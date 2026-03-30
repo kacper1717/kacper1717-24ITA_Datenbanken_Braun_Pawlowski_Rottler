@@ -30,7 +30,7 @@ docker compose up -d mysql
 cat abgabe/Teil_1/schema.sql | docker compose exec -T mysql sh -lc 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
 ```
 
-3. Import ausführen (CSV-Import in Transaktion mit Rollback-Handler):
+3. Import ausführen (CSV-Import in Transaktion):
 
 ```bash
 cat abgabe/Teil_1/import.sql | docker compose exec -T mysql sh -lc 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
