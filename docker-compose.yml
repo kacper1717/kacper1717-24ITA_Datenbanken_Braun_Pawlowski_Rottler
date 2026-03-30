@@ -2,7 +2,7 @@ services:
   mysql:
     image: mysql:8.4
     container_name: skeleton-mysql
-    env_file: ../.env
+    env_file: ./.env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-productdb}
@@ -80,7 +80,7 @@ services:
     ports:
       # HIER IST DEIN GEWÜNSCHTER PORT 8081
       - "${SKELETON_APP_HOST_PORT:-8081}:5000"
-    env_file: ../.env
+    env_file: ./.env
     environment:
       FLASK_ENV: ${FLASK_ENV:-development}
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-dev-secret}
