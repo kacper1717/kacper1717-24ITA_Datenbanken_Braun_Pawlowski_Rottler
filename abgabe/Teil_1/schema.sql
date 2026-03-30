@@ -56,7 +56,10 @@ CREATE TABLE products (
         REFERENCES categories(id),
 
     CONSTRAINT chk_price
-        CHECK (price >= 0)
+        CHECK (price >= 0),
+    
+    CONSTRAINT chk_name_not_empty
+        CHECK (CHAR_LENGTH(name) > 0)
 );
 
 CREATE TABLE product_tags (
