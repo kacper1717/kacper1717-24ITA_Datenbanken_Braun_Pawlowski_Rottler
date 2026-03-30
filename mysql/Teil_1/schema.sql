@@ -8,7 +8,7 @@ Anforderungen:
 - Normalisierung (mind. 4 NF)
 
 Abgabe Teil 1 beinhaltet:
-- ER-Modell
+- ER-Modell.pdf
 - import.sql
 - schema.sql
 */
@@ -17,7 +17,6 @@ Abgabe Teil 1 beinhaltet:
 /*
 schema.sql aufbauend auf ER-Modell implementiert die Tabellen mit entsprechenden PK, FK und relationen sowie kardinalitäten.
 */
-
 DROP DATABASE IF EXISTS productdb;
 CREATE DATABASE productdb;
 USE productdb;
