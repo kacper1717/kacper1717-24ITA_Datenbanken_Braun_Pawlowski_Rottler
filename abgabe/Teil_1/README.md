@@ -1,3 +1,7 @@
+Aufgaben:
+- ER-Modell überarbeiten, Datentypen erstellen, statt drawio ein anderes Tool verwenden, was für ER-Diagramme geeignet ist
+- README.md überarbeiten
+
 Teil 1 Anforderungen:
 - schema.sql, muss mit ER.PDF übereinstimmen
 - import.sql, mit Transaktionen
