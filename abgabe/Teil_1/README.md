@@ -10,7 +10,7 @@ Teil 1 Anforderungen:
 
 ## Teil 1 - Datenmodell
 
-Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (xx), Ruven Braun (xx)
+Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (8971956), Ruven Braun (6136649)
 
 ### Inhalt der Abgabe
 - `ER-Modell.pdf`
