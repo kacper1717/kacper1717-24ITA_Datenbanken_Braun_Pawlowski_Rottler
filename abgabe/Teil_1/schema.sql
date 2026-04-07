@@ -1,22 +1,9 @@
-/*
-Teil 1 - Datenmodell:
-
-Anforderungen:
-- vollständiges relationales Schema
-- Primär- und Fremdschlüssel
-- referenzielle Integrität
-- Normalisierung (mind. 4 NF)
-
-Abgabe Teil 1 beinhaltet:
-- ER-Modell.pdf
-- import.sql
-- schema.sql
-*/
-
-/*
-schema.sql aufbauend auf ER-Modell implementiert die Tabellen mit
-entsprechenden PK, FK und Relationen sowie Kardinalitäten.
-*/
+-- ============================================================
+-- schema.sql
+-- Erstellt die Datenbankstruktur für den Produktkatalog.
+-- Aufbauend auf dem ER-Modell mit PK, FK, Constraints
+-- und referenzieller Integrität.
+-- ============================================================
 
 DROP DATABASE IF EXISTS productdb;
 CREATE DATABASE productdb;
@@ -60,9 +47,11 @@ CREATE TABLE products (
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
+    -- Preis darf nicht negativ sein
     CONSTRAINT chk_price
         CHECK (price >= 0),
-
+        
+    -- Produktname darf nicht leer sein
     CONSTRAINT chk_name_not_empty
         CHECK (CHAR_LENGTH(name) > 0)
 );
