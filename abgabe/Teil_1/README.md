@@ -1,13 +1,3 @@
-Aufgaben:
-- ER-Modell überarbeiten, Datentypen erstellen, statt drawio ein anderes Tool verwenden, was für ER-Diagramme geeignet ist
-- README.md überarbeiten
-
-Teil 1 Anforderungen:
-- schema.sql, muss mit ER.PDF übereinstimmen
-- import.sql, mit Transaktionen
-- Name, MatrNr
-- README.md mit Anleitung zum Ausführen der SQL-Dateien
-
 ## Teil 1 - Datenmodell
 
 Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (8971956), Ruven Braun (6136649)
