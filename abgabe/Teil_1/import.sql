@@ -1,7 +1,7 @@
--- import.sql sorgt für das korrekte laden der CSV-Daten in die erzeugten Tabellen aus schema.sql
+-- import.sql sorgt für das korrekte Laden der CSV-Daten in die erzeugten Tabellen aus schema.sql
 USE productdb;
 
--- Starten einer Transaktion mit automatischem Rollback bei Fehler
+-- Transaktion starten
 START TRANSACTION;
 
 -- Lade Brands
@@ -52,5 +52,8 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
 (product_id, tag_id);
 
--- Commit der Transaktion
+-- Commit bei Erfolg
 COMMIT;
+
+-- Bei Fehler manuell ausführen:
+-- ROLLBACK;
