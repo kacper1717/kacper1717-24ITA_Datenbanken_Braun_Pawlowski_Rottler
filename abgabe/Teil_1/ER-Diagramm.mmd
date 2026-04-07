@@ -20,12 +20,11 @@ erDiagram
         DECIMAL price
         VARCHAR load_class
         VARCHAR application
-        INT temp_min
-        INT temp_max
+        VARCHAR temperature_range
     }
     ProductTag {
-        INT product_id PK_FK
-        INT tag_id PK_FK
+        INT product_id PK, FK
+        INT tag_id PK, FK
     }
 
     Brand    ||--o{ Product    : "stellt her"
