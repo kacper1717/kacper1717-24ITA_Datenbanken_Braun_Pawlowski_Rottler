@@ -1,9 +1,9 @@
-## Teil 1 - Datenmodell
+## Teil 1 – Relationales Schema & Datenimport
 
 Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (8971956), Ruven Braun (6136649)
 
 ### Inhalt der Abgabe
-- `ER-Modell.pdf`
+- `ER-Diagramm.pdf` *(Crow's-Foot-Notation: `||` = 1, `o{` = n; `ProductTag` hat zusammengesetzten PK aus `product_id` + `tag_id`)*
 - `schema.sql`
 - `import.sql`
 
