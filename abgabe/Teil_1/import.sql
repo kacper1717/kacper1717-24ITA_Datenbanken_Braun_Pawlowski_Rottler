@@ -7,9 +7,11 @@
 
 USE productdb;
 
+-- Transaktion starten: alle folgenden LOAD DATA Operationen werden
+-- erst mit COMMIT dauerhaft geschrieben. Tritt ein Fehler auf, bevor
+-- COMMIT erreicht wird, verwirft MySQL alle Änderungen automatisch,
+-- sofern die Verbindung danach geschlossen wird (z.B. über Terminal).
 START TRANSACTION;
-
--- Stammdaten zuerst laden (werden von products referenziert)
 
 LOAD DATA INFILE '/csv/brands.csv'
 INTO TABLE brands
@@ -55,8 +57,3 @@ IGNORE 1 ROWS
 
 -- Alle Importe erfolgreich -> Transaktion abschließen
 COMMIT;
-
--- Hinweis: LOAD DATA INFILE unterstützt kein automatisches ROLLBACK.
--- Tritt ein Fehler auf, bleibt die Transaktion offen und muss
--- manuell mit ROLLBACK beendet werden, bevor neue Befehle ausgeführt werden:
--- ROLLBACK;

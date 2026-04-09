@@ -13,26 +13,32 @@ Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (8971956), Ruven Braun
 
 ### Ausführung
 
-#### Option A – Terminal
-
 1. Datenbank-Container starten:
 ```bash
 docker compose up -d mysql
 ```
 
 2. Schema ausführen (legt `productdb` und alle Tabellen an):
+
+**Linux/macOS/Git Bash:**
 ```bash
 cat abgabe/Teil_1/schema.sql | docker compose exec -T mysql sh -lc 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
 ```
+**Windows (PowerShell):**
+```powershell
+Get-Content abgabe\Teil_1\schema.sql | docker compose exec -T mysql sh -lc 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
+```
 
 3. Import ausführen (CSV-Import in Transaktion):
+
+**Linux/macOS/Git Bash:**
 ```bash
 cat abgabe/Teil_1/import.sql | docker compose exec -T mysql sh -lc 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
 ```
-
-#### Option B – Adminer (Web UI)
-
-Alternativ können `schema.sql` und `import.sql` über Adminer unter http://localhost:8990 ausgeführt werden (Container mit `docker compose up -d mysql adminer` starten, dann unter SQL-Befehl ausführen einfügen).
+**Windows (PowerShell):**
+```powershell
+Get-Content abgabe\Teil_1\import.sql | docker compose exec -T mysql sh -lc 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
+```
 
 ### Verifikation
 ```bash

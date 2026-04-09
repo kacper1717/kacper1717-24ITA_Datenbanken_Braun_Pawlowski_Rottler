@@ -1,8 +1,6 @@
 -- ============================================================
 -- schema.sql
 -- Erstellt die Datenbankstruktur für den Produktkatalog.
--- Aufbauend auf dem ER-Modell mit PK, FK, Constraints
--- und referenzieller Integrität.
 -- ============================================================
 
 DROP DATABASE IF EXISTS productdb;
