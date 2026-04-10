@@ -1,0 +1,33 @@
+erDiagram
+    Brand {
+        INT id PK
+        VARCHAR name
+    }
+    Category {
+        INT id PK
+        VARCHAR name
+    }
+    Tag {
+        INT id PK
+        VARCHAR name
+    }
+    Product {
+        INT id PK
+        VARCHAR name
+        TEXT description
+        INT brand_id FK
+        INT category_id FK
+        DECIMAL price
+        VARCHAR load_class
+        VARCHAR application
+        VARCHAR temperature_range
+    }
+    ProductTag {
+        INT product_id PK, FK
+        INT tag_id PK, FK
+    }
+
+    Brand    ||--o{ Product    : "stellt her"
+    Category ||--o{ Product    : "enthält"
+    Product  ||--o{ ProductTag : "hat"
+    Tag      ||--o{ ProductTag : "hat"
