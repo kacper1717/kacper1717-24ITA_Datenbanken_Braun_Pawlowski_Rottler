@@ -4,7 +4,6 @@ Handles all MySQL-specific database operations.
 """
 from abc import ABC, abstractmethod
 from typing import Optional
-import re
 import logging
 
 from sqlalchemy import text
@@ -58,11 +57,32 @@ class MySQLRepositoryImpl(MySQLRepository):
             session_factory: Optional SQLAlchemy session factory.
                            If None, uses db.mysql_session_factory
         """
-        raise NotImplementedError("TODO: implement repository initialization.")
+        self.session_factory = session_factory or db.mysql_session_factory
+        if self.session_factory is None:
+            raise RuntimeError("MySQL SessionFactory nicht initialisiert.")
 
     def _get_session(self):
         """Get MySQL session from factory"""
-        raise NotImplementedError("TODO: implement session retrieval.")
+        return self.session_factory()
+
+    @staticmethod
+    def _table_exists(session, table_name: str) -> bool:
+        """Return True if table exists in the current schema."""
+        return (
+            session.execute(
+                text(
+                    """
+                SELECT 1
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = :table_name
+                LIMIT 1
+                """
+                ),
+                {"table_name": table_name},
+            ).scalar()
+            is not None
+        )
 
     def get_products_with_joins(self, page: int, page_size: int) -> dict:
         """
@@ -75,7 +95,56 @@ class MySQLRepositoryImpl(MySQLRepository):
         Returns:
             dict with 'items' (list of products) and 'total' (total count)
         """
-        raise NotImplementedError("TODO: implement product list query.")
+        page_int = int(page)
+        page_size_int = int(page_size)
+        offset = max(page_int - 1, 0) * page_size_int
+
+        try:
+            with self._get_session() as s:
+                if not self._table_exists(s, "products"):
+                    log.warning("products table fehlt - liefere leere Produktliste")
+                    return {"items": [], "total": 0}
+
+                total = s.execute(text("SELECT COUNT(*) FROM products")).scalar() or 0
+
+                # Skeleton-Query: lauffaehig ohne JOINs.
+                # TODO:
+                # 1) brand/category
+                # 2) tags_csv
+                # 3) falls GROUP_CONCAT genutzt wird: passendes GROUP BY ergaenzen
+                sql = text(
+                    """
+                    SELECT p.id AS product_id,
+                           p.name AS name,
+                           p.price AS price,
+                           '' AS brand,
+                           '' AS category,
+                           '' AS tags_csv
+                    FROM products p
+                    ORDER BY p.id
+                    LIMIT :limit OFFSET :offset
+                    """
+                )
+
+                rows = (
+                    s.execute(sql, {"limit": page_size_int, "offset": offset})
+                    .mappings()
+                    .all()
+                )
+
+                items: list[dict] = []
+                for r in rows:
+                    it = dict(r)
+                    it["currency"] = "EUR"
+                    tags_csv = it.pop("tags_csv", "") or ""
+                    it["tags"] = [x for x in tags_csv.split(",") if x]
+                    it["tags_str"] = ", ".join(it["tags"])
+                    items.append(it)
+
+            return {"items": items, "total": int(total)}
+        except Exception:
+            log.exception("Produktliste konnte nicht geladen werden - liefere leere Liste")
+            return {"items": [], "total": 0}
 
     def get_dashboard_stats(self) -> dict:
         """

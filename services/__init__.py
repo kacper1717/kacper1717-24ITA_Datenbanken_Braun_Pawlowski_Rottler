@@ -35,7 +35,10 @@ class ServiceFactory:
     @classmethod
     def reset(cls):
         """Reset all cached instances (useful for testing)"""
-        raise NotImplementedError("TODO: implement ServiceFactory.reset().")
+        cls._instances.clear()
+        cls._shared_resources.clear()
+        RepositoryFactory.reset()
+        log.debug("Service factory instances cleared")
 
     @classmethod
     def _get_embedding_model(cls) -> SentenceTransformer:
@@ -45,7 +48,13 @@ class ServiceFactory:
         Returns:
             SentenceTransformer instance
         """
-        raise NotImplementedError("TODO: implement shared embedding model setup.")
+        if "embedding_model" not in cls._shared_resources:
+            model_name = current_app.config.get(
+                "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+            )
+            cls._shared_resources["embedding_model"] = SentenceTransformer(model_name)
+            log.info(f"✓ Shared embedding model loaded: {model_name}")
+        return cls._shared_resources["embedding_model"]
 
     @classmethod
     def _get_llm_client(cls) -> Optional[OpenAI]:
@@ -55,7 +64,15 @@ class ServiceFactory:
         Returns:
             OpenAI client or None if API key not configured
         """
-        raise NotImplementedError("TODO: implement shared LLM client setup.")
+        if "llm_client" not in cls._shared_resources:
+            api_key = current_app.config.get("OPENAI_API_KEY")
+            if not api_key:
+                log.warning("OPENAI_API_KEY not configured - LLM features disabled")
+                cls._shared_resources["llm_client"] = None
+            else:
+                cls._shared_resources["llm_client"] = OpenAI(api_key=api_key)
+                log.info("✓ Shared OpenAI client initialized")
+        return cls._shared_resources["llm_client"]
 
     @classmethod
     def get_search_service(cls) -> SearchService:
@@ -65,7 +82,20 @@ class ServiceFactory:
         Returns:
             SearchService instance with injected dependencies
         """
-        raise NotImplementedError("TODO: implement SearchService creation.")
+        if "search" not in cls._instances:
+            qdrant_repo = RepositoryFactory.get_qdrant_repository()
+            neo4j_repo = RepositoryFactory.get_neo4j_repository()
+            embedding_model = cls._get_embedding_model()
+            llm_client = cls._get_llm_client()
+
+            cls._instances["search"] = SearchService(
+                qdrant_repo=qdrant_repo,
+                neo4j_repo=neo4j_repo,
+                embedding_model=embedding_model,
+                llm_client=llm_client,
+            )
+            log.debug("SearchService instance created")
+        return cls._instances["search"]
 
     @classmethod
     def get_index_service(cls) -> IndexService:
@@ -75,7 +105,18 @@ class ServiceFactory:
         Returns:
             IndexService instance with injected dependencies
         """
-        raise NotImplementedError("TODO: implement IndexService creation.")
+        if "index" not in cls._instances:
+            qdrant_repo = RepositoryFactory.get_qdrant_repository()
+            mysql_repo = RepositoryFactory.get_mysql_repository()
+            embedding_model = cls._get_embedding_model()
+
+            cls._instances["index"] = IndexService(
+                qdrant_repo=qdrant_repo,
+                mysql_repo=mysql_repo,
+                embedding_model=embedding_model,
+            )
+            log.debug("IndexService instance created")
+        return cls._instances["index"]
 
     @classmethod
     def get_pdf_service(cls) -> PDFService:
@@ -85,7 +126,16 @@ class ServiceFactory:
         Returns:
             PDFService instance with injected dependencies
         """
-        raise NotImplementedError("TODO: implement PDFService creation.")
+        if "pdf" not in cls._instances:
+            qdrant_repo = RepositoryFactory.get_qdrant_repository()
+            embedding_model = cls._get_embedding_model()
+
+            cls._instances["pdf"] = PDFService(
+                qdrant_repo=qdrant_repo,
+                embedding_model=embedding_model,
+            )
+            log.debug("PDFService instance created")
+        return cls._instances["pdf"]
 
     @classmethod
     def get_product_service(cls) -> ProductService:
@@ -95,7 +145,16 @@ class ServiceFactory:
         Returns:
             ProductService instance with injected dependencies
         """
-        raise NotImplementedError("TODO: implement ProductService creation.")
+        if "product" not in cls._instances:
+            mysql_repo = RepositoryFactory.get_mysql_repository()
+            qdrant_repo = RepositoryFactory.get_qdrant_repository()
+
+            cls._instances["product"] = ProductService(
+                mysql_repo=mysql_repo,
+                qdrant_repo=qdrant_repo,
+            )
+            log.debug("ProductService instance created")
+        return cls._instances["product"]
 
 
 # Export all service classes and factory

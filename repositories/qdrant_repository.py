@@ -78,7 +78,14 @@ class QdrantRepositoryImpl(QdrantRepository):
             qdrant_url: Qdrant server URL
             default_collection: Default collection name for products
         """
-        raise NotImplementedError("TODO: implement Qdrant repository initialization.")
+        # NOTE (Skeleton): Für viele Aufgaben (z.B. /products) wird Qdrant nicht benötigt.
+        # Trotzdem wird der ProductService über die Factory immer mit einem Qdrant-Repo
+        # instanziiert. Damit /products nicht an einem Stub scheitert, initialisiert man
+        # hier den Client minimal.
+        self.qdrant_url = qdrant_url
+        self.default_collection = default_collection
+        self.client = QdrantClient(url=qdrant_url)
+        log.info("✓ Qdrant client initialized url=%s default_collection=%s", qdrant_url, default_collection)
 
     def ensure_collection(
         self,

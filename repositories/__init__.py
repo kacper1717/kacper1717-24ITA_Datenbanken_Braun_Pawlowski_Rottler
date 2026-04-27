@@ -32,7 +32,8 @@ class RepositoryFactory:
     @classmethod
     def reset(cls):
         """Reset all cached instances (useful for testing)"""
-        raise NotImplementedError("TODO: implement RepositoryFactory.reset().")
+        cls._instances.clear()
+        log.debug("Repository factory instances cleared")
 
     @classmethod
     def get_mysql_repository(cls, session_factory=None) -> MySQLRepository:
@@ -45,7 +46,10 @@ class RepositoryFactory:
         Returns:
             MySQLRepository instance
         """
-        raise NotImplementedError("TODO: implement MySQL repository creation.")
+        if "mysql" not in cls._instances:
+            cls._instances["mysql"] = MySQLRepositoryImpl(session_factory)
+            log.debug("MySQL repository instance created")
+        return cls._instances["mysql"]
 
     @classmethod
     def get_qdrant_repository(cls, qdrant_url: Optional[str] = None) -> QdrantRepository:
@@ -58,7 +62,12 @@ class RepositoryFactory:
         Returns:
             QdrantRepository instance
         """
-        raise NotImplementedError("TODO: implement Qdrant repository creation.")
+        if "qdrant" not in cls._instances:
+            url = qdrant_url or current_app.config.get("QDRANT_URL")
+            collection = current_app.config.get("QDRANT_COLLECTION", "products")
+            cls._instances["qdrant"] = QdrantRepositoryImpl(url, collection)
+            log.debug("Qdrant repository instance created")
+        return cls._instances["qdrant"]
 
     @classmethod
     def get_neo4j_repository(
@@ -75,7 +84,17 @@ class RepositoryFactory:
         Returns:
             Neo4jRepository instance
         """
-        raise NotImplementedError("TODO: implement Neo4j repository creation.")
+        if "neo4j" not in cls._instances:
+            uri = uri or current_app.config.get("NEO4J_URI") or os.getenv("NEO4J_URI")
+            user = user or current_app.config.get("NEO4J_USER") or os.getenv("NEO4J_USER")
+            password = password or current_app.config.get("NEO4J_PASSWORD") or os.getenv("NEO4J_PASSWORD")
+            if not uri or not user or not password:
+                log.warning("Neo4j not configured; using NoOpNeo4jRepository")
+                cls._instances["neo4j"] = NoOpNeo4jRepository()
+            else:
+                cls._instances["neo4j"] = Neo4jRepositoryImpl(uri, user, password)
+                log.debug("Neo4j repository instance created")
+        return cls._instances["neo4j"]
 
     @classmethod
     def get_product_repository(cls) -> ProductRepository:
@@ -85,7 +104,10 @@ class RepositoryFactory:
         Returns:
             ProductRepository instance
         """
-        raise NotImplementedError("TODO: implement Product repository creation.")
+        if "product" not in cls._instances:
+            cls._instances["product"] = ProductRepositoryImpl()
+            log.debug("Product repository instance created")
+        return cls._instances["product"]
 
     @classmethod
     def get_dashboard_repository(cls) -> DashboardRepository:
@@ -95,7 +117,10 @@ class RepositoryFactory:
         Returns:
             DashboardRepository instance
         """
-        raise NotImplementedError("TODO: implement Dashboard repository creation.")
+        if "dashboard" not in cls._instances:
+            cls._instances["dashboard"] = DashboardRepositoryImpl()
+            log.debug("Dashboard repository instance created")
+        return cls._instances["dashboard"]
 
     @classmethod
     def get_audit_repository(cls) -> AuditRepository:
@@ -105,7 +130,10 @@ class RepositoryFactory:
         Returns:
             AuditRepository instance
         """
-        raise NotImplementedError("TODO: implement Audit repository creation.")
+        if "audit" not in cls._instances:
+            cls._instances["audit"] = AuditRepositoryImpl()
+            log.debug("Audit repository instance created")
+        return cls._instances["audit"]
 
 
 # Export all repository classes and factory
