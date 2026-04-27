@@ -39,7 +39,9 @@ class ProductService:
         Returns:
             Dictionary with 'items' (list of products) and 'total' (total count)
         """
-        raise NotImplementedError("TODO: implement product listing.")
+        result = self.mysql_repo.get_products_with_joins(page=page, page_size=page_size)
+        log.info(f"Listed {len(result['items'])} products (page {page}, size {page_size})")
+        return result
 
     def get_dashboard_data(self) -> dict:
         """
