@@ -5,6 +5,7 @@ Handles all MySQL-specific database operations.
 from abc import ABC, abstractmethod
 from typing import Optional
 import logging
+import re
 
 from sqlalchemy import text
 import db
@@ -117,10 +118,15 @@ class MySQLRepositoryImpl(MySQLRepository):
                     SELECT p.id AS product_id,
                            p.name AS name,
                            p.price AS price,
-                           '' AS brand,
-                           '' AS category,
-                           '' AS tags_csv
+                           b.name AS brand,
+                           c.name AS category,
+                           GROUP_CONCAT(t.name) AS tags_csv
                     FROM products p
+                    LEFT JOIN brands b ON p.brand_id = b.id
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    LEFT JOIN product_tags pt ON p.id = pt.product_id
+                    LEFT JOIN tags t ON pt.tag_id = t.id
+                    GROUP BY p.id, p.name, p.price, b.name, c.name
                     ORDER BY p.id
                     LIMIT :limit OFFSET :offset
                     """
@@ -156,7 +162,28 @@ class MySQLRepositoryImpl(MySQLRepository):
         Returns:
             dict with 'mysql_counts' and 'last_runs'
         """
-        raise NotImplementedError("TODO: implement dashboard stats.")
+        try:
+            with self._get_session() as s:
+                products_count = s.execute(text("SELECT COUNT(*) FROM products")).scalar() or 0
+                brands_count = s.execute(text("SELECT COUNT(*) FROM brands")).scalar() or 0
+                categories_count = s.execute(text("SELECT COUNT(*) FROM categories")).scalar() or 0
+                
+            last_runs = self.get_last_runs(limit=5)
+            
+            return {
+                "mysql_counts": {
+                    "products": products_count,
+                    "brands": brands_count,
+                    "categories": categories_count
+                },
+                "last_runs": last_runs
+            }
+        except Exception as e:
+            log.error(f"Error getting dashboard stats: {e}")
+            return {
+                "mysql_counts": {"products": 0, "brands": 0, "categories": 0},
+                "last_runs": []
+            }
 
     def get_audit_entries(self, page: int, page_size: int) -> dict:
         """
@@ -169,7 +196,22 @@ class MySQLRepositoryImpl(MySQLRepository):
         Returns:
             dict with 'items' (list of audit entries) and 'total' (total count)
         """
-        raise NotImplementedError("TODO: implement audit entries query.")
+        page_int = int(page)
+        page_size_int = int(page_size)
+        offset = max(page_int - 1, 0) * page_size_int
+        
+        try:
+            with self._get_session() as s:
+                if not self._table_exists(s, "products_audit"):
+                    return {"items": [], "total": 0}
+                    
+                total = s.execute(text("SELECT COUNT(*) FROM products_audit")).scalar() or 0
+                rows = s.execute(text("SELECT * FROM products_audit ORDER BY changed_at DESC LIMIT :limit OFFSET :offset"), 
+                                {"limit": page_size_int, "offset": offset}).mappings().all()
+                return {"items": [dict(r) for r in rows], "total": int(total)}
+        except Exception as e:
+            log.error(f"Error getting audit entries: {e}")
+            return {"items": [], "total": 0}
 
     def get_last_runs(self, limit: int = 10) -> list[dict]:
         """
@@ -181,7 +223,15 @@ class MySQLRepositoryImpl(MySQLRepository):
         Returns:
             List of run log dictionaries
         """
-        raise NotImplementedError("TODO: implement last runs query.")
+        try:
+            with self._get_session() as s:
+                if not self._table_exists(s, "etl_run_log"):
+                    return []
+                rows = s.execute(text("SELECT * FROM etl_run_log ORDER BY run_timestamp DESC LIMIT :limit"), {"limit": limit}).mappings().all()
+                return [dict(r) for r in rows]
+        except Exception as e:
+            log.error(f"Error getting last runs: {e}")
+            return []
 
     def execute_raw_query(self, query: str) -> list[dict]:
         """
@@ -199,15 +249,42 @@ class MySQLRepositoryImpl(MySQLRepository):
             ValueError: If query is not SELECT or contains forbidden keywords
             Exception: On SQL execution errors
         """
-        raise NotImplementedError("TODO: implement raw SQL execution.")
+        query_upper = self._strip_string_literals(query).upper()
+        if not query_upper.strip().startswith("SELECT"):
+            raise ValueError("Only SELECT queries are allowed.")
+            
+        forbidden = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "REPLACE", "GRANT", "REVOKE"]
+        for word in forbidden:
+            if re.search(r'' + word + r'', query_upper):
+                raise ValueError(f"Forbidden keyword '{word}' detected.")
+                
+        try:
+            with self._get_session() as s:
+                rows = s.execute(text(query)).mappings().all()
+                return [dict(r) for r in rows]
+        except Exception as e:
+            log.error(f"Raw query failed: {e}")
+            raise e
 
     @staticmethod
     def _strip_string_literals(query: str) -> str:
-        raise NotImplementedError("TODO: implement string literal stripping.")
+        # Remove anything in single quotes or double quotes
+        q = re.sub(r"'[^']*'", "''", query)
+        q = re.sub(r'"[^"]*"', '""', q)
+        return q
 
     @staticmethod
     def _extract_table_names(query: str) -> list[str]:
-        raise NotImplementedError("TODO: implement table name extraction.")
+        q = MySQLRepositoryImpl._strip_string_literals(query).upper()
+        # Find all words after FROM or JOIN
+        tables = []
+        parts = q.split()
+        for i, p in enumerate(parts):
+            if p in ("FROM", "JOIN") and i + 1 < len(parts):
+                # Next word might be table name
+                t = re.sub(r'[^A-Z0-9_]', '', parts[i+1])
+                if t: tables.append(t)
+        return tables
 
     def has_column(self, table: str, column: str) -> bool:
         """
@@ -220,7 +297,19 @@ class MySQLRepositoryImpl(MySQLRepository):
         Returns:
             True if column exists, False otherwise
         """
-        raise NotImplementedError("TODO: implement column existence check.")
+        try:
+            with self._get_session() as s:
+                result = s.execute(text("""
+                    SELECT 1 
+                    FROM information_schema.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = :table 
+                      AND COLUMN_NAME = :column
+                """), {"table": table, "column": column}).scalar()
+                return result is not None
+        except Exception as e:
+            log.error(f"Error checking column: {e}")
+            return False
 
     def load_products_for_index(
         self, limit: Optional[int] = None, include_tags: bool = True
@@ -235,7 +324,33 @@ class MySQLRepositoryImpl(MySQLRepository):
         Returns:
             List of product dictionaries with all fields
         """
-        raise NotImplementedError("TODO: implement product load for indexing.")
+        try:
+            with self._get_session() as s:
+                query = """
+                    SELECT p.*, b.name as brand, c.name as category
+                    FROM products p
+                    LEFT JOIN brands b ON p.brand_id = b.id
+                    LEFT JOIN categories c ON p.category_id = c.id
+                """
+                if limit:
+                    query += " LIMIT :limit"
+                
+                rows = s.execute(text(query), {"limit": limit} if limit else {}).mappings().all()
+                products = [dict(r) for r in rows]
+                
+                if include_tags:
+                    for p in products:
+                        tags = s.execute(text("""
+                            SELECT t.name 
+                            FROM tags t
+                            JOIN product_tags pt ON t.id = pt.tag_id
+                            WHERE pt.product_id = :pid
+                        """), {"pid": p["id"]}).scalars().all()
+                        p["tags"] = list(tags)
+                return products
+        except Exception as e:
+            log.error(f"Error loading products for index: {e}")
+            return []
 
     def log_etl_run(
         self, strategy: str, products_processed: int, products_written: int
@@ -248,4 +363,22 @@ class MySQLRepositoryImpl(MySQLRepository):
             products_processed: Number of products processed
             products_written: Number of products written to index
         """
-        raise NotImplementedError("TODO: implement ETL run logging.")
+        try:
+            with self._get_session() as s:
+                if not self._table_exists(s, "etl_run_log"):
+                    s.execute(text("""
+                        CREATE TABLE etl_run_log (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            strategy VARCHAR(50),
+                            products_processed INT,
+                            products_written INT,
+                            run_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                s.execute(text("""
+                    INSERT INTO etl_run_log (strategy, products_processed, products_written)
+                    VALUES (:strategy, :processed, :written)
+                """), {"strategy": strategy, "processed": products_processed, "written": products_written})
+                s.commit()
+        except Exception as e:
+            log.error(f"Error logging ETL run: {e}")
