@@ -99,6 +99,10 @@ services:
     volumes:
       - skeleton_pdf_uploads:/data/pdfs
       - ./logs:/app/logs
+      # Lade alle Code-Dateien live in den Container fuer Hot-Reload
+      - ./:/app
+      # Verhindere Konflikte mit lokalen virtuellen Umgebungen
+      - /app/.venv
     depends_on:
       - mysql
       - qdrant
