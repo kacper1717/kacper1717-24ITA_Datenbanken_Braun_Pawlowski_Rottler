@@ -46,6 +46,11 @@ class MySQLRepository(ABC):
         """Check if a table has a specific column"""
         pass
 
+    @abstractmethod
+    def search_products_by_keyword(self, keyword: str, limit: int = 20) -> list[dict]:
+        """Parameterized keyword search on product name and description"""
+        pass
+
 
 class MySQLRepositoryImpl(MySQLRepository):
     """Concrete implementation of MySQL repository"""
@@ -167,47 +172,55 @@ class MySQLRepositoryImpl(MySQLRepository):
                 products_count = s.execute(text("SELECT COUNT(*) FROM products")).scalar() or 0
                 brands_count = s.execute(text("SELECT COUNT(*) FROM brands")).scalar() or 0
                 categories_count = s.execute(text("SELECT COUNT(*) FROM categories")).scalar() or 0
-                
+                tags_count = s.execute(text("SELECT COUNT(*) FROM tags")).scalar() or 0
+
             last_runs = self.get_last_runs(limit=5)
-            
+
             return {
                 "mysql_counts": {
                     "products": products_count,
                     "brands": brands_count,
-                    "categories": categories_count
+                    "categories": categories_count,
+                    "tags": tags_count,
                 },
                 "last_runs": last_runs
             }
         except Exception as e:
             log.error(f"Error getting dashboard stats: {e}")
             return {
-                "mysql_counts": {"products": 0, "brands": 0, "categories": 0},
+                "mysql_counts": {"products": 0, "brands": 0, "categories": 0, "tags": 0},
                 "last_runs": []
             }
 
     def get_audit_entries(self, page: int, page_size: int) -> dict:
         """
-        Get paginated audit log entries from etl_run_log.
+        Get paginated ETL run log entries.
 
         Args:
             page: Page number (1-based)
             page_size: Number of items per page
 
         Returns:
-            dict with 'items' (list of audit entries) and 'total' (total count)
+            dict with 'items' (list of run log entries) and 'total' (total count)
         """
         page_int = int(page)
         page_size_int = int(page_size)
         offset = max(page_int - 1, 0) * page_size_int
-        
+
         try:
             with self._get_session() as s:
-                if not self._table_exists(s, "products_audit"):
+                if not self._table_exists(s, "etl_run_log"):
                     return {"items": [], "total": 0}
-                    
-                total = s.execute(text("SELECT COUNT(*) FROM products_audit")).scalar() or 0
-                rows = s.execute(text("SELECT * FROM products_audit ORDER BY changed_at DESC LIMIT :limit OFFSET :offset"), 
-                                {"limit": page_size_int, "offset": offset}).mappings().all()
+
+                total = s.execute(text("SELECT COUNT(*) FROM etl_run_log")).scalar() or 0
+                rows = s.execute(
+                    text("""
+                        SELECT * FROM etl_run_log
+                        ORDER BY run_timestamp DESC
+                        LIMIT :limit OFFSET :offset
+                    """),
+                    {"limit": page_size_int, "offset": offset},
+                ).mappings().all()
                 return {"items": [dict(r) for r in rows], "total": int(total)}
         except Exception as e:
             log.error(f"Error getting audit entries: {e}")
@@ -310,6 +323,36 @@ class MySQLRepositoryImpl(MySQLRepository):
         except Exception as e:
             log.error(f"Error checking column: {e}")
             return False
+
+    def search_products_by_keyword(self, keyword: str, limit: int = 20) -> list[dict]:
+        """
+        Parameterized keyword search on product name and description.
+
+        Args:
+            keyword: Search term
+            limit: Maximum number of results
+
+        Returns:
+            List of product dictionaries
+        """
+        try:
+            with self._get_session() as s:
+                rows = s.execute(
+                    text("""
+                        SELECT p.id, p.name, p.price, b.name AS brand,
+                               c.name AS category, p.description
+                        FROM products p
+                        LEFT JOIN brands b ON p.brand_id = b.id
+                        LEFT JOIN categories c ON p.category_id = c.id
+                        WHERE p.name LIKE :kw OR p.description LIKE :kw
+                        LIMIT :limit
+                    """),
+                    {"kw": f"%{keyword}%", "limit": limit},
+                ).mappings().all()
+                return [dict(r) for r in rows]
+        except Exception as e:
+            log.error(f"Error in keyword search: {e}")
+            return []
 
     def load_products_for_index(
         self, limit: Optional[int] = None, include_tags: bool = True
