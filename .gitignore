@@ -68,4 +68,3 @@ Thumbs.db
 temp/
 *.csv.gz
 *.stackdump
-/.claude/settings.local.json
