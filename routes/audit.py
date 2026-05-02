@@ -12,4 +12,14 @@ bp = Blueprint("audit", __name__)
 @bp.get("/audit")
 def audit():
     """View audit log with pagination"""
-    raise NotImplementedError("TODO: implement audit view.")
+    page = _get_int("page", 1)
+    page_size = _get_int("page_size", 50)
+    product_service = ServiceFactory.get_product_service()
+
+    try:
+        result = product_service.get_audit_log(page=page, page_size=page_size)
+    except Exception as e:
+        log.error(f"Error loading audit log: {e}")
+        result = {"items": [], "total": 0}
+
+    return render_template("audit.html", result=result, page=page, page_size=page_size)

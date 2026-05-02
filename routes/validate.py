@@ -1,8 +1,9 @@
 """Validate route - MySQL schema validation"""
 import logging
-from flask import Blueprint, render_template
+from flask import Blueprint, current_app, render_template
+from sqlalchemy import create_engine
 
-from services import ServiceFactory
+from validation import validate_mysql
 
 log = logging.getLogger(__name__)
 bp = Blueprint("validate", __name__)
@@ -11,4 +12,7 @@ bp = Blueprint("validate", __name__)
 @bp.post("/validate")
 def validate():
     """Validate MySQL database schema and data integrity"""
-    raise NotImplementedError("TODO: implement MySQL validation route.")
+    mysql_url = current_app.config.get("MYSQL_URL")
+    engine = create_engine(mysql_url, pool_pre_ping=True, future=True)
+    report = validate_mysql(engine)
+    return render_template("validation_result.html", report=report)
