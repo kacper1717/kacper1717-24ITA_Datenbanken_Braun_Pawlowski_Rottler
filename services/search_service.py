@@ -41,7 +41,13 @@ class SearchService:
 
     def _get_embedding_model(self) -> SentenceTransformer:
         """Lazy-load embedding model"""
-        raise NotImplementedError("TODO: implement embedding model loading.")
+        if self._embedding_model is None:
+            import os
+            from sentence_transformers import SentenceTransformer
+            model_name = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+            log.info(f"Loading embedding model: {model_name}")
+            self._embedding_model = SentenceTransformer(model_name)
+        return self._embedding_model
 
     def _get_llm_client(self) -> OpenAI:
         """Lazy-load OpenAI client"""
@@ -57,7 +63,11 @@ class SearchService:
         Returns:
             List of embedding vectors (numpy arrays)
         """
-        raise NotImplementedError("TODO: implement embedding generation.")
+        if not texts:
+            return []
+        model = self._get_embedding_model()
+        embeddings = model.encode(texts)
+        return embeddings.tolist()
 
     def vector_search(
         self, query: str, topk: int = 5, collection_name: Optional[str] = None
@@ -73,7 +83,37 @@ class SearchService:
         Returns:
             List of product dictionaries with scores
         """
-        raise NotImplementedError("TODO: implement vector search.")
+        if not query:
+            return []
+            
+        col = collection_name or "products"
+        
+        # 1. Embed query
+        query_vector = self.embed_texts([query])[0]
+        
+        # 2. Search in Qdrant
+        results = self.qdrant_repo.search(
+            collection_name=col,
+            query_vector=query_vector,
+            limit=topk,
+            with_payload=True
+        )
+        
+        # 3. Format results
+        formatted_results = []
+        for r in results:
+            payload = r.payload or {}
+            formatted_results.append({
+                "id": r.id,
+                "score": r.score,
+                "name": payload.get("name", "Unknown"),
+                "brand": payload.get("brand", ""),
+                "category": payload.get("category", ""),
+                "price": payload.get("price", 0.0),
+                "document": payload.get("document", "")
+            })
+            
+        return formatted_results
 
     def rag_search(
         self, strategy: str, query: str, topk: int = 5, use_graph_enrichment: bool = True
@@ -126,17 +166,34 @@ class SearchService:
 
     def execute_sql_search(self, query: str) -> list[dict]:
         """
-        Execute SQL search query (delegated to product service).
-
-        Note: This is a placeholder. SQL queries should be handled by ProductService.
+        Keyword search via MySQL using parameterized queries.
 
         Args:
-            query: SQL query string
+            query: Search term
 
         Returns:
             List of result dictionaries
         """
-        raise NotImplementedError("TODO: implement SQL search delegation.")
+        if not query:
+            return []
+        try:
+            from services import ServiceFactory
+            product_service = ServiceFactory.get_product_service()
+            results = product_service.search_products_by_keyword(keyword=query, limit=20)
+            return [
+                {
+                    "id": r.get("id"),
+                    "name": r.get("name"),
+                    "brand": r.get("brand"),
+                    "category": r.get("category"),
+                    "price": r.get("price"),
+                    "document": r.get("description", ""),
+                }
+                for r in results
+            ]
+        except Exception as e:
+            log.error(f"Error in SQL search: {e}")
+            return []
 
     def _generate_llm_answer(self, query: str, hits: list[dict]) -> str:
         """

@@ -39,7 +39,13 @@ class IndexService:
 
     def _get_embedding_model(self) -> SentenceTransformer:
         """Lazy-load embedding model"""
-        raise NotImplementedError("TODO: implement embedding model loading.")
+        if self._embedding_model is None:
+            import os
+            from sentence_transformers import SentenceTransformer
+            model_name = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+            log.info(f"Loading embedding model: {model_name}")
+            self._embedding_model = SentenceTransformer(model_name)
+        return self._embedding_model
 
     def embed_texts(self, texts: list[str]) -> list:
         """
@@ -51,7 +57,12 @@ class IndexService:
         Returns:
             List of embedding vectors (numpy arrays)
         """
-        raise NotImplementedError("TODO: implement embedding generation.")
+        if not texts:
+            return []
+        model = self._get_embedding_model()
+        # encode returns a numpy array, convert to list of floats for Qdrant
+        embeddings = model.encode(texts)
+        return embeddings.tolist()
 
     @staticmethod
     def product_to_document(product: dict) -> str:
@@ -64,7 +75,23 @@ class IndexService:
         Returns:
             Formatted document string
         """
-        raise NotImplementedError("TODO: implement product-to-document conversion.")
+        # Combine all relevant fields into a rich text document for better semantic search
+        parts = []
+        parts.append(f"Produkt: {product.get('name', '')}")
+        
+        brand = product.get('brand')
+        if brand: parts.append(f"Marke: {brand}")
+        
+        category = product.get('category')
+        if category: parts.append(f"Kategorie: {category}")
+        
+        desc = product.get('description')
+        if desc: parts.append(f"Beschreibung: {desc}")
+        
+        tags = product.get('tags', [])
+        if tags: parts.append(f"Tags: {', '.join(tags)}")
+        
+        return " | ".join(parts)
 
     def build_index(
         self, strategy: str = "A", limit: Optional[int] = None, batch_size: int = 64
@@ -85,7 +112,67 @@ class IndexService:
         Returns:
             Dictionary with indexing statistics
         """
-        raise NotImplementedError("TODO: implement index build.")
+        log.info(f"Starting index build with strategy={strategy}, limit={limit}")
+        
+        # 1. Fetch products from MySQL
+        products = self.mysql_repo.load_products_for_index(limit=limit, include_tags=True)
+        if not products:
+            log.warning("No products found in MySQL to index.")
+            return {"status": "error", "message": "No products found"}
+
+        # 2. Ensure Qdrant collection exists (default vector size for MiniLM is 384)
+        import os
+        vector_size = int(os.getenv("EMBEDDING_DIM", "384"))
+        collection = "products"
+        self.qdrant_repo.ensure_collection(collection_name=collection, vector_size=vector_size)
+
+        # 3. Process in batches
+        total_processed = 0
+        total_written = 0
+        
+        for i in range(0, len(products), batch_size):
+            batch = products[i:i + batch_size]
+            
+            # Prepare documents
+            texts = [self.product_to_document(p) for p in batch]
+            
+            # Generate embeddings
+            embeddings = self.embed_texts(texts)
+            
+            # Prepare points for Qdrant
+            points = []
+            for p, emb, txt in zip(batch, embeddings, texts):
+                points.append({
+                    "id": p["id"],
+                    "vector": emb,
+                    "payload": {
+                        "name": p.get("name"),
+                        "brand": p.get("brand"),
+                        "category": p.get("category"),
+                        "price": float(p.get("price", 0.0)),
+                        "document": txt
+                    }
+                })
+            
+            # Upsert to Qdrant
+            self.qdrant_repo.upsert_points(collection_name=collection, points=points)
+            
+            total_processed += len(batch)
+            total_written += len(points)
+            log.info(f"Indexed batch: {total_written}/{len(products)}")
+
+        # 4. Log the run in MySQL
+        self.mysql_repo.log_etl_run(
+            strategy=strategy,
+            products_processed=total_processed,
+            products_written=total_written
+        )
+
+        return {
+            "status": "success",
+            "products_processed": total_processed,
+            "products_written": total_written
+        }
 
     def get_index_status(self) -> dict:
         """
@@ -94,7 +181,23 @@ class IndexService:
         Returns:
             Dictionary with index statistics
         """
-        raise NotImplementedError("TODO: implement index status retrieval.")
+        import os
+        count = self.qdrant_repo.count(collection_name="products")
+        collection_info = self.get_collection_info()
+
+        last_indexed_at = None
+        runs = self.mysql_repo.get_last_runs(limit=1)
+        if runs:
+            last_indexed_at = runs[0].get("run_timestamp")
+
+        return {
+            "indexed_products": count,
+            "count_indexed": count,
+            "status": "online" if count > 0 else "empty",
+            "last_indexed_at": last_indexed_at,
+            "embedding_model": os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
+            "collection_info": collection_info,
+        }
 
     def truncate_index(self, collection_name: Optional[str] = None) -> None:
         """
@@ -103,7 +206,7 @@ class IndexService:
         Args:
             collection_name: Optional collection name (uses default if None)
         """
-        raise NotImplementedError("TODO: implement index truncation.")
+        self.qdrant_repo.truncate_index(collection_name=collection_name)
 
     def get_collection_info(self, collection_name: Optional[str] = None) -> dict:
         """
@@ -115,4 +218,5 @@ class IndexService:
         Returns:
             Dictionary with collection information
         """
-        raise NotImplementedError("TODO: implement collection info retrieval.")
+        col = collection_name or "products"
+        return self.qdrant_repo.get_collection_info(collection_name=col)

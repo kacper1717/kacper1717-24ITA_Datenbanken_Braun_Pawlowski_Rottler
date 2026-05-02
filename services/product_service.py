@@ -52,7 +52,37 @@ class ProductService:
         Returns:
             Dictionary with 'mysql_counts', 'qdrant_counts', 'last_runs'
         """
-        raise NotImplementedError("TODO: implement dashboard data aggregation.")
+        mysql_counts = {
+            "products": 0, "brands": 0, "categories": 0
+        }
+        last_runs = []
+        try:
+            stats = self.mysql_repo.get_dashboard_stats()
+            if stats:
+                mysql_counts = stats.get("mysql_counts", mysql_counts)
+                last_runs = stats.get("last_runs", [])
+        except Exception as e:
+            log.error(f"Error getting MySQL stats: {e}")
+
+        qdrant_counts = {
+            "indexed": 0, "status": "unknown", "last_indexed_at": None, "embedding_model": None
+        }
+        try:
+            from services import ServiceFactory
+            index_service = ServiceFactory.get_index_service()
+            q_stats = index_service.get_index_status()
+            qdrant_counts["indexed"] = q_stats.get("indexed_products", 0)
+            qdrant_counts["status"] = q_stats.get("status", "unknown")
+            qdrant_counts["last_indexed_at"] = q_stats.get("last_indexed_at")
+            qdrant_counts["embedding_model"] = q_stats.get("embedding_model")
+        except Exception as e:
+            log.error(f"Error getting Qdrant stats: {e}")
+
+        return {
+            "mysql_counts": mysql_counts,
+            "qdrant_counts": qdrant_counts,
+            "last_runs": last_runs
+        }
 
     def get_audit_log(self, page: int = 1, page_size: int = 10) -> dict:
         """
@@ -65,7 +95,7 @@ class ProductService:
         Returns:
             Dictionary with 'items' (list of audit entries) and 'total' (total count)
         """
-        raise NotImplementedError("TODO: implement audit log retrieval.")
+        return self.mysql_repo.get_audit_entries(page=page, page_size=page_size)
 
     def get_last_runs(self, limit: int = 10) -> list[dict]:
         """
@@ -77,7 +107,7 @@ class ProductService:
         Returns:
             List of run log dictionaries
         """
-        raise NotImplementedError("TODO: implement last runs retrieval.")
+        return self.mysql_repo.get_last_runs(limit=limit)
 
     def execute_sql_query(self, query: str) -> list[dict]:
         """
@@ -95,7 +125,20 @@ class ProductService:
             ValueError: If query is not SELECT or contains forbidden keywords
             Exception: On SQL execution errors
         """
-        raise NotImplementedError("TODO: implement SQL execution.")
+        return self.mysql_repo.execute_raw_query(query)
+
+    def search_products_by_keyword(self, keyword: str, limit: int = 20) -> list[dict]:
+        """
+        Keyword search delegated to MySQL repository.
+
+        Args:
+            keyword: Search term
+            limit: Maximum number of results
+
+        Returns:
+            List of product dictionaries
+        """
+        return self.mysql_repo.search_products_by_keyword(keyword=keyword, limit=limit)
 
     def validate_mysql(self) -> dict:
         """
