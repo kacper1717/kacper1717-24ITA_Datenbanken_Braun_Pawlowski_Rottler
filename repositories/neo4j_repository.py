@@ -55,7 +55,10 @@ class Neo4jRepositoryImpl(Neo4jRepository):
             user: Neo4j username
             password: Neo4j password
         """
-        raise NotImplementedError("TODO: implement Neo4j repository initialization.")
+        self.uri = uri
+        self.user = user
+        self.password = password
+
 
     def get_product_relationships(self, mysql_ids: list[int]) -> dict[int, dict]:
         """
