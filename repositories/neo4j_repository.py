@@ -63,6 +63,12 @@ class NoOpNeo4jRepository(Neo4jRepository):
     def count_products_by_brand(self) -> dict[str, int]:
         return {}
 
+    def upsert_products(self, products: list[dict]) -> int:
+        return 0
+
+    def clear_products(self) -> None:
+        return None
+
     def __enter__(self):
         return self
 
@@ -351,6 +357,44 @@ class Neo4jRepositoryImpl(Neo4jRepository):
             """
         )
         return {row.get("name", "Unbekannt"): int(row.get("count", 0)) for row in rows}
+
+    def upsert_products(self, products: list[dict]) -> int:
+        """
+        Upsert (create or update) products in Neo4j.
+
+        Args:
+            products: List of product dicts with id, name, brand, category, price, etc.
+
+        Returns:
+            Number of products created/updated
+        """
+        if not products:
+            return 0
+        
+        # Batch Cypher to create or update Product nodes
+        query = """
+        UNWIND $products AS prod
+        MERGE (p:Product {mysql_id: prod.id})
+        SET p.id = prod.id,
+            p.name = prod.name,
+            p.brand = prod.brand,
+            p.category = prod.category,
+            p.price = prod.price,
+            p.description = coalesce(prod.description, '')
+        RETURN count(DISTINCT p) AS count
+        """
+        
+        rows = self.execute_cypher(query, {"products": products})
+        count = int(rows[0].get("count", 0)) if rows else 0
+        log.info(f"Upserted {count} products to Neo4j")
+        return count
+
+    def clear_products(self) -> None:
+        """
+        Clear all Product nodes from Neo4j (for reindexing).
+        """
+        self.execute_cypher("MATCH (p:Product) DETACH DELETE p")
+        log.info("Cleared all Product nodes from Neo4j")
 
     def __enter__(self):
         """Context manager entry"""

@@ -108,12 +108,14 @@ class ServiceFactory:
         if "index" not in cls._instances:
             qdrant_repo = RepositoryFactory.get_qdrant_repository()
             mysql_repo = RepositoryFactory.get_mysql_repository()
+            neo4j_repo = RepositoryFactory.get_neo4j_repository()
             embedding_model = cls._get_embedding_model()
 
             cls._instances["index"] = IndexService(
                 qdrant_repo=qdrant_repo,
                 mysql_repo=mysql_repo,
                 embedding_model=embedding_model,
+                neo4j_repo=neo4j_repo,
             )
             log.debug("IndexService instance created")
         return cls._instances["index"]

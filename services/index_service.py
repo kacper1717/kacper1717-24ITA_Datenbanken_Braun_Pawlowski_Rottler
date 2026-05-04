@@ -11,7 +11,7 @@ from datetime import datetime
 from flask import current_app
 from sentence_transformers import SentenceTransformer
 
-from repositories import QdrantRepository, MySQLRepository
+from repositories import QdrantRepository, MySQLRepository, Neo4jRepository
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ class IndexService:
         qdrant_repo: QdrantRepository,
         mysql_repo: MySQLRepository,
         embedding_model: Optional[SentenceTransformer] = None,
+        neo4j_repo: Optional[Neo4jRepository] = None,
     ):
         """
         Initialize index service.
@@ -32,10 +33,12 @@ class IndexService:
             qdrant_repo: Qdrant repository for vector operations
             mysql_repo: MySQL repository for loading products
             embedding_model: Optional pre-initialized embedding model
+            neo4j_repo: Optional Neo4j repository for graph indexing
         """
         self.qdrant_repo = qdrant_repo
         self.mysql_repo = mysql_repo
         self._embedding_model = embedding_model
+        self.neo4j_repo = neo4j_repo
 
     def _get_embedding_model(self) -> SentenceTransformer:
         """Lazy-load embedding model"""
@@ -161,7 +164,27 @@ class IndexService:
             total_written += len(points)
             log.info(f"Indexed batch: {total_written}/{len(products)}")
 
-        # 4. Log the run in MySQL
+        # 4. Optionally sync to Neo4j
+        if self.neo4j_repo:
+            try:
+                # Prepare minimal product data for Neo4j
+                neo4j_products = [
+                    {
+                        "id": p.get("id"),
+                        "name": p.get("name", ""),
+                        "brand": p.get("brand", ""),
+                        "category": p.get("category", ""),
+                        "price": float(p.get("price", 0.0)),
+                        "description": p.get("description", ""),
+                    }
+                    for p in products
+                ]
+                self.neo4j_repo.upsert_products(neo4j_products)
+                log.info(f"Synced {len(neo4j_products)} products to Neo4j")
+            except Exception as e:
+                log.warning(f"Neo4j sync failed (continuing anyway): {e}")
+
+        # 5. Log the run in MySQL
         self.mysql_repo.log_etl_run(
             strategy=strategy,
             products_processed=total_processed,
@@ -207,6 +230,14 @@ class IndexService:
             collection_name: Optional collection name (uses default if None)
         """
         self.qdrant_repo.truncate_index(collection_name=collection_name)
+        
+        # Also clear Neo4j if available
+        if self.neo4j_repo:
+            try:
+                self.neo4j_repo.clear_products()
+                log.info("Cleared Neo4j products")
+            except Exception as e:
+                log.warning(f"Neo4j clear failed: {e}")
 
     def get_collection_info(self, collection_name: Optional[str] = None) -> dict:
         """
