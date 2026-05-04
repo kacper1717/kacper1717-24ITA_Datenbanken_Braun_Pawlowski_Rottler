@@ -360,7 +360,9 @@ class Neo4jRepositoryImpl(Neo4jRepository):
 
     def upsert_products(self, products: list[dict]) -> int:
         """
-        Upsert (create or update) products in Neo4j.
+        Upsert (create or update) products in Neo4j with full graph structure.
+
+        Creates Product, Brand, and Category nodes, plus relationships.
 
         Args:
             products: List of product dicts with id, name, brand, category, price, etc.
@@ -371,8 +373,8 @@ class Neo4jRepositoryImpl(Neo4jRepository):
         if not products:
             return 0
         
-        # Batch Cypher to create or update Product nodes
-        query = """
+        # Step 1: Create/update all Product nodes with Brand and Category relationships
+        product_cypher = """
         UNWIND $products AS prod
         MERGE (p:Product {mysql_id: prod.id})
         SET p.id = prod.id,
@@ -381,20 +383,36 @@ class Neo4jRepositoryImpl(Neo4jRepository):
             p.category = prod.category,
             p.price = prod.price,
             p.description = coalesce(prod.description, '')
+        
+        // Create Brand node and relationship
+        WITH p, prod
+        MERGE (b:Brand {name: prod.brand})
+        MERGE (p)-[rel_brand:HAS_BRAND]->(b)
+        
+        // Create Category node and relationship
+        WITH p, prod
+        MERGE (c:Category {name: prod.category})
+        MERGE (p)-[rel_category:HAS_CATEGORY]->(c)
+        
         RETURN count(DISTINCT p) AS count
         """
         
-        rows = self.execute_cypher(query, {"products": products})
+        rows = self.execute_cypher(product_cypher, {"products": products})
         count = int(rows[0].get("count", 0)) if rows else 0
-        log.info(f"Upserted {count} products to Neo4j")
+        log.info(f"Upserted {count} products to Neo4j with Brand and Category relationships")
+        
         return count
 
     def clear_products(self) -> None:
         """
-        Clear all Product nodes from Neo4j (for reindexing).
+        Clear all Product, Brand, and Category nodes from Neo4j (for reindexing).
         """
-        self.execute_cypher("MATCH (p:Product) DETACH DELETE p")
-        log.info("Cleared all Product nodes from Neo4j")
+        self.execute_cypher("""
+            MATCH (p:Product) DETACH DELETE p;
+            MATCH (b:Brand) DETACH DELETE b;
+            MATCH (c:Category) DETACH DELETE c;
+        """)
+        log.info("Cleared all Product, Brand, and Category nodes from Neo4j")
 
     def __enter__(self):
         """Context manager entry"""
