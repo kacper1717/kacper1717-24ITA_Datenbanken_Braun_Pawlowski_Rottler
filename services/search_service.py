@@ -51,7 +51,17 @@ class SearchService:
 
     def _get_llm_client(self) -> OpenAI:
         """Lazy-load OpenAI client"""
-        raise NotImplementedError("TODO: implement LLM client loading.")
+        if self._llm_client is None:
+            api_key = current_app.config.get("OPENAI_API_KEY")
+            if not api_key:
+                log.warning("OPENAI_API_KEY not configured - using fallback answer generation")
+                return None
+            try:
+                self._llm_client = OpenAI(api_key=api_key)
+            except Exception:
+                log.exception("Failed to initialize OpenAI client")
+                return None
+        return self._llm_client
 
     def embed_texts(self, texts: list[str]) -> list:
         """
@@ -130,7 +140,36 @@ class SearchService:
         Returns:
             Dictionary with 'query', 'answer', 'hits'
         """
-        raise NotImplementedError("TODO: implement RAG search.")
+        if not query:
+            return {"query": query, "answer": "", "hits": []}
+
+        hits = self.vector_search(query, topk=topk)
+        enriched_hits = [dict(hit) for hit in hits]
+
+        if use_graph_enrichment and self.neo4j_repo:
+            ids = self._coerce_ints(hit.get("id") for hit in hits)
+            if ids:
+                enrichment = self.neo4j_repo.get_product_relationships(ids)
+                for hit in enriched_hits:
+                    hit_id = self._coerce_int(hit.get("id"))
+                    if hit_id is None:
+                        continue
+                    graph_data = enrichment.get(hit_id)
+                    if not graph_data:
+                        continue
+                    if graph_data.get("title"):
+                        hit["title"] = graph_data["title"]
+                        hit["name"] = graph_data["title"]
+                    if graph_data.get("brand"):
+                        hit["brand"] = graph_data["brand"]
+                    if graph_data.get("category"):
+                        hit["category"] = graph_data["category"]
+                    if graph_data.get("tags"):
+                        hit["tags"] = graph_data["tags"]
+                    hit["graph_source"] = "Neo4j"
+
+        answer = self._generate_llm_answer(query, enriched_hits)
+        return {"query": query, "answer": answer, "hits": enriched_hits, "strategy": strategy}
 
     def pdf_rag_search(
         self, query: str, topk: int = 5, pdf_collection: str = "pdf_skripte"
@@ -206,12 +245,77 @@ class SearchService:
         Returns:
             LLM-generated answer string
         """
-        raise NotImplementedError("TODO: implement LLM answer generation.")
+        if not hits:
+            return "Keine Treffer gefunden."
+
+        lines = []
+        for index, hit in enumerate(hits[:5], start=1):
+            title = hit.get("title") or hit.get("name") or "Unbekannt"
+            brand = hit.get("brand") or ""
+            category = hit.get("category") or ""
+            tags = hit.get("tags") or []
+            tag_text = ", ".join(tags) if tags else ""
+            parts = [f"{index}. {title}"]
+            if brand:
+                parts.append(f"Marke: {brand}")
+            if category:
+                parts.append(f"Kategorie: {category}")
+            if tag_text:
+                parts.append(f"Tags: {tag_text}")
+            score = hit.get("score")
+            if score is not None:
+                parts.append(f"Score: {score:.3f}" if isinstance(score, (int, float)) else f"Score: {score}")
+            lines.append(" | ".join(parts))
+
+        client = self._get_llm_client()
+        if client is None:
+            return (
+                "LLM ist nicht konfiguriert. Gefundene Treffer:\n"
+                + "\n".join(lines)
+            )
+
+        model = current_app.config.get("LLM_MODEL", "gpt-4.1-mini")
+        prompt = (
+            "Du beantwortest kurze Produktanfragen auf Deutsch. "
+            "Nutze nur den gegebenen Kontext und nenne Unsicherheiten offen.\n\n"
+            f"Anfrage: {query}\n\n"
+            "Kontext:\n"
+            + "\n".join(lines)
+        )
+
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "Du antwortest präzise und sachlich auf Deutsch."},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+            )
+            content = response.choices[0].message.content if response.choices else None
+            if content:
+                return content.strip()
+        except Exception:
+            log.exception("LLM answer generation failed")
+
+        return "LLM-Antwort konnte nicht generiert werden. Gefundene Treffer:\n" + "\n".join(lines)
 
     @staticmethod
     def _coerce_int(value) -> Optional[int]:
-        raise NotImplementedError("TODO: implement int coercion.")
+        if value is None:
+            return None
+        try:
+            if isinstance(value, bool):
+                return None
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     @classmethod
     def _coerce_ints(cls, values: Iterable) -> list[int]:
-        raise NotImplementedError("TODO: implement list int coercion.")
+        ints: list[int] = []
+        for value in values:
+            coerced = cls._coerce_int(value)
+            if coerced is not None:
+                ints.append(coerced)
+        return ints

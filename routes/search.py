@@ -28,9 +28,11 @@ def search():
                 {
                     "title": r.get("name", ""),
                     "brand": r.get("brand", ""),
+                    "category": r.get("category", ""),
                     "price": r.get("price", 0),
                     "score": r.get("score"),
                     "doc_preview": r.get("document", ""),
+                    "tags": r.get("tags", []),
                     "graph_source": None,
                 }
                 for r in raw
@@ -42,6 +44,34 @@ def search():
                 results = product_service.execute_sql_query(query)
             except Exception as e:
                 log.error(f"SQL search error: {e}")
+                flash(str(e), "danger")
+
+        elif search_type in {"rag", "graph"}:
+            try:
+                rag_result = search_service.rag_search(
+                    strategy=search_type,
+                    query=query,
+                    topk=topk,
+                    use_graph_enrichment=search_type == "graph",
+                )
+                raw_hits = rag_result.get("hits", [])
+                # Konsistent mit vector-search formatieren
+                results = [
+                    {
+                        "title": r.get("name", ""),
+                        "brand": r.get("brand", ""),
+                        "category": r.get("category", ""),
+                        "price": r.get("price", 0),
+                        "score": r.get("score"),
+                        "doc_preview": r.get("document", ""),
+                        "tags": r.get("tags", []),
+                        "graph_source": r.get("graph_source"),
+                    }
+                    for r in raw_hits
+                ]
+                answer = rag_result.get("answer")
+            except Exception as e:
+                log.exception("RAG search error")
                 flash(str(e), "danger")
 
     return render_template(
