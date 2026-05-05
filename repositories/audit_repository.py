@@ -10,5 +10,12 @@ class AuditRepository(ABC):
 
 
 class AuditRepositoryImpl(AuditRepository):
+    def __init__(self, mysql_repo):
+        self.mysql_repo = mysql_repo
+
     def get_log(self, page: int, page_size: int) -> dict:
-        raise NotImplementedError("TODO: implement audit log retrieval.")
+        """Get paginated ETL audit log entries."""
+        try:
+            return self.mysql_repo.get_audit_entries(page=page, page_size=page_size)
+        except Exception:
+            return {"items": [], "total": 0}

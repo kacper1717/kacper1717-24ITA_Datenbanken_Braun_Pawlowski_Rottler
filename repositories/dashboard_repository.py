@@ -18,11 +18,29 @@ class DashboardRepository(ABC):
 
 
 class DashboardRepositoryImpl(DashboardRepository):
+    def __init__(self, mysql_repo):
+        self.mysql_repo = mysql_repo
+
     def get_mysql_counts(self) -> dict:
-        raise NotImplementedError("TODO: implement MySQL counts.")
+        """Get counts of products, brands, categories, tags from MySQL."""
+        try:
+            return self.mysql_repo.get_dashboard_stats().get("mysql_counts", {})
+        except Exception:
+            return {"products": 0, "brands": 0, "categories": 0, "tags": 0}
 
     def get_last_indexed_at(self):
-        raise NotImplementedError("TODO: implement last indexed timestamp.")
+        """Get timestamp of last index run."""
+        try:
+            runs = self.mysql_repo.get_last_runs(limit=1)
+            if runs:
+                return runs[0].get("run_timestamp")
+        except Exception:
+            pass
+        return None
 
     def get_last_runs(self, limit: int = 10) -> list[dict]:
-        raise NotImplementedError("TODO: implement last runs.")
+        """Get last N ETL run log entries."""
+        try:
+            return self.mysql_repo.get_last_runs(limit=limit)
+        except Exception:
+            return []

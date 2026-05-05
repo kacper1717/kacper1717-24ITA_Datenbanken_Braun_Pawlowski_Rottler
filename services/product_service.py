@@ -147,7 +147,17 @@ class ProductService:
         Returns:
             Validation report dictionary
         """
-        raise NotImplementedError("TODO: implement MySQL validation.")
+        required_tables = ["products", "brands", "categories", "tags", "product_tags", "etl_run_log"]
+        missing_tables = []
+        for table in required_tables:
+            if not self.mysql_repo.has_column(table, "id"):
+                missing_tables.append(table)
+        
+        return {
+            "status": "valid" if not missing_tables else "invalid",
+            "missing_tables": missing_tables,
+            "timestamp": str(__import__('datetime').datetime.utcnow())
+        }
 
     def get_product_count(self) -> int:
         """
@@ -184,3 +194,5 @@ class ProductService:
             Dictionary with summary statistics
         """
         raise NotImplementedError("TODO: implement summary stats.")
+
+
