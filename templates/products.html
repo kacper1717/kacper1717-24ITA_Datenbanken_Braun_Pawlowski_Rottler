@@ -51,34 +51,114 @@
 {# ===================== #}
 
 {% if total_pages > 1 %}
-<nav aria-label="Produkt-Navigation">
-  <ul class="pagination pagination-sm justify-content-center">
+<div class="d-flex justify-content-center align-items-center gap-3 mt-4">
+  <nav aria-label="Produkt-Navigation">
+    <ul class="pagination pagination-sm mb-0">
 
-    <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-      <a class="page-link"
-         href="{{ url_for('products.products', page=page-1, page_size=page_size) }}">
-        «
-      </a>
-    </li>
-
-    {% for p in range(1, total_pages + 1) %}
-      <li class="page-item {% if p == page %}active{% endif %}">
+      <li class="page-item {% if page <= 1 %}disabled{% endif %}">
         <a class="page-link"
-           href="{{ url_for('products.products', page=p, page_size=page_size) }}">
-          {{ p }}
+           href="{{ url_for('products.products', page=page-1, page_size=page_size) }}">
+          «
         </a>
       </li>
-    {% endfor %}
 
-    <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
-      <a class="page-link"
-         href="{{ url_for('products.products', page=page+1, page_size=page_size) }}">
-        »
-      </a>
-    </li>
+      <!-- Position 1: Seite 1 (immer) -->
+      <li class="page-item {% if page == 1 %}active{% endif %}">
+        <a class="page-link"
+           href="{{ url_for('products.products', page=1, page_size=page_size) }}">
+          1
+        </a>
+      </li>
 
-  </ul>
-</nav>
+      <!-- Positionen 2-6: intelligente mittlere Seiten -->
+      {% if page <= 3 %}
+        <!-- Nahe Anfang: zeige 2,3,4,5 und dann ... wenn Gap zur letzten Seite -->
+        {% for p in [2, 3, 4, 5] %}
+          {% if p <= total_pages %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('products.products', page=p, page_size=page_size) }}">
+                {{ p }}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+        <!-- Wenn Gap zur letzten Seite, zeige ... -->
+        {% if total_pages > 6 %}
+          <li class="page-item disabled">
+            <span class="page-link">…</span>
+          </li>
+        {% endif %}
+      {% elif page >= total_pages - 2 %}
+        <!-- Nahe Ende: zeige ..., dann die letzten 4 Seiten -->
+        <li class="page-item disabled">
+          <span class="page-link">…</span>
+        </li>
+        {% for p in range(total_pages - 4, total_pages) %}
+          {% if p > 1 %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('products.products', page=p, page_size=page_size) }}">
+                {{ p }}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <!-- In der Mitte: zeige ..., page-1, page, page+1, ... -->
+        <li class="page-item disabled">
+          <span class="page-link">…</span>
+        </li>
+        {% for p in [page - 1, page, page + 1] %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link"
+               href="{{ url_for('products.products', page=p, page_size=page_size) }}">
+              {{ p }}
+            </a>
+          </li>
+        {% endfor %}
+        <li class="page-item disabled">
+          <span class="page-link">…</span>
+        </li>
+      {% endif %}
+
+      <!-- Position 7: letzte Seite (immer) -->
+      {% if total_pages > 1 %}
+        <li class="page-item {% if page == total_pages %}active{% endif %}">
+          <a class="page-link"
+             href="{{ url_for('products.products', page=total_pages, page_size=page_size) }}">
+            {{ total_pages }}
+          </a>
+        </li>
+      {% endif %}
+
+      <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+        <a class="page-link"
+           href="{{ url_for('products.products', page=page+1, page_size=page_size) }}">
+          »
+        </a>
+      </li>
+
+    </ul>
+  </nav>
+
+  <div class="d-flex gap-2 align-items-center">
+    <label for="goto-page" class="mb-0 text-muted small" style="white-space: nowrap;">
+      Gehe zu:
+    </label>
+    <input
+      type="number"
+      id="goto-page"
+      name="page"
+      class="form-control form-control-sm"
+      style="width: 4rem;"
+      min="1"
+      max="{{ total_pages }}"
+      value="{{ page }}"
+        onkeypress="if(event.key=='Enter') { var p = parseInt(this.value); if(p >= 1 && p <= {{ total_pages }}) { window.location.href = '{{ url_for('products.products') }}?page=' + p + '&page_size={{ page_size }}'; } }"
+      required>
+  </div>
+</div>
 {% endif %}
 
 {% endblock %}
