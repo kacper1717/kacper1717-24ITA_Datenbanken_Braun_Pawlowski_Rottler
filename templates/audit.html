@@ -25,35 +25,38 @@
   <input type="hidden" name="page" value="1">
 </form>
 
-{# ----------------------------
-   Audit table
-   ---------------------------- #}
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Zeitpunkt</th>
-      <th>Strategie</th>
-      <th>Processed</th>
-      <th>Written</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for r in result.get("items", []) %}
-      <tr>
-        <td>{{ r.get("run_timestamp", "-") }}</td>
-        <td>{{ r.get("strategy", "-") }}</td>
-        <td class="text-success">{{ r.get("products_processed", 0) }}</td>
-        <td>{{ r.get("products_written", "-") }}</td>
-      </tr>
-    {% else %}
-      <tr>
-        <td colspan="4" class="text-muted text-center">
-          Keine Audit-Einträge vorhanden
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Zeitpunkt</th>
+            <th>Strategie</th>
+            <th>Processed</th>
+            <th>Written</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in result.get("items", []) %}
+            <tr>
+              <td>{{ r.get("run_timestamp", "-") }}</td>
+              <td>{{ r.get("strategy", "-") }}</td>
+              <td class="text-success">{{ r.get("products_processed", 0) }}</td>
+              <td>{{ r.get("products_written", "-") }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-muted text-center py-4">
+                Keine Audit-Einträge vorhanden
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 {# ----------------------------
    Summary

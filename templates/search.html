@@ -1,121 +1,96 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Datenbank-Suche</h2>
+<h1 class="mb-3">Datenbank-Suche</h1>
 
-    <!-- Tabs -->
-    <ul
-        class="nav nav-tabs justify-content-start"
-        id="searchTabs"
-        role="tablist"
-        style="flex-direction: row !important; justify-content: flex-start !important;">
-        <!-- SQL-Suche (1. Tab) -->
-        <li class="nav-item" role="presentation">
-            <button
-                class="nav-link {% if search_type == 'sql' %}active{% endif %}"
-                id="sql-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#sql-content"
-                type="button"
-                onclick="setSearchType('sql')">
-                SQL-Suche
-            </button>
-        </li>
+<ul class="nav nav-tabs justify-content-start flex-row" id="searchTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button
+            class="nav-link {% if search_type == 'sql' %}active{% endif %}"
+            id="sql-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#sql-content"
+            type="button"
+            onclick="setSearchType('sql')">
+            SQL-Suche
+        </button>
+    </li>
 
-        <li class="nav-item" role="presentation">
-            <button
-                class="nav-link {% if search_type == 'vector' %}active{% endif %}"
-                id="vector-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#vector-content"
-                type="button"
-                onclick="setSearchType('vector')">
-                Vektorsuche
-            </button>
-        </li>
+    <li class="nav-item" role="presentation">
+        <button
+            class="nav-link {% if search_type == 'vector' %}active{% endif %}"
+            id="vector-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#vector-content"
+            type="button"
+            onclick="setSearchType('vector')">
+            Vektorsuche
+        </button>
+    </li>
 
-        <li class="nav-item" role="presentation">
-            <button
-                class="nav-link {% if search_type == 'rag' %}active{% endif %}"
-                id="rag-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#rag-content"
-                type="button"
-                onclick="setSearchType('rag')">
-                RAG-LLM
-            </button>
-        </li>
+    <li class="nav-item" role="presentation">
+        <button
+            class="nav-link {% if search_type == 'rag' %}active{% endif %}"
+            id="rag-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#rag-content"
+            type="button"
+            onclick="setSearchType('rag')">
+            RAG-LLM
+        </button>
+    </li>
 
-        <li class="nav-item" role="presentation">
-            <button
-                class="nav-link {% if search_type == 'graph' %}active{% endif %}"
-                id="graph-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#graph-content"
-                type="button"
-                onclick="setSearchType('graph')">
-                Graph-RAG
-            </button>
-        </li>
+    <li class="nav-item" role="presentation">
+        <button
+            class="nav-link {% if search_type == 'graph' %}active{% endif %}"
+            id="graph-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#graph-content"
+            type="button"
+            onclick="setSearchType('graph')">
+            Graph-RAG
+        </button>
+    </li>
 
-        <li class="nav-item" role="presentation">
-            <button
-                class="nav-link {% if search_type == 'pdf' %}active{% endif %}"
-                id="pdf-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#pdf-content"
-                type="button"
-                onclick="setSearchType('pdf')">
-                PDF-RAG
-            </button>
-        </li>
-    </ul>
+    <li class="nav-item" role="presentation">
+        <button
+            class="nav-link {% if search_type == 'pdf' %}active{% endif %}"
+            id="pdf-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#pdf-content"
+            type="button"
+            onclick="setSearchType('pdf')">
+            PDF-RAG
+        </button>
+    </li>
+</ul>
 
-    <!-- Tab Content -->
-    <div class="tab-content mt-3" id="searchTabContent">
-        <!-- SQL-Suche -->
-        <div class="tab-pane fade {% if search_type == 'sql' %}show active{% endif %}" id="sql-content">
-            <div class="card">
-                <div class="card-body">
-                    <h5>SQL-Direktsuche (MySQL)</h5>
-                    <p class="text-muted">Führe SQL-Queries direkt auf der productdb-Datenbank aus</p>
-                    <form method="POST" action="{{ url_for('search.search', type='sql') }}">
-                        <div class="form-group mb-2">
-                            <label>SQL Query:</label>
-                            <textarea name="query" class="form-control" rows="4"
-                                      placeholder="z.B. SELECT * FROM products WHERE price < 100 LIMIT 10">{{ query }}</textarea>
-                            <small class="text-muted">
-                                ⚠️ Nur SELECT-Queries erlaubt. Beispiele:
-                                <code>SELECT * FROM products WHERE brand = 'Bosch'</code>
-                            </small>
-                        </div>
-                        <button type="submit" class="btn btn-primary">🔍 Suchen</button>
-                    </form>
-                </div>
+<div class="tab-content mt-3" id="searchTabContent">
+    <div class="tab-pane fade {% if search_type == 'sql' %}show active{% endif %}" id="sql-content">
+        <div class="card">
+            <div class="card-body">
+                <h5>SQL-Direktsuche (MySQL)</h5>
+                <p class="text-muted">Führe SQL-Queries direkt auf der productdb-Datenbank aus</p>
+                <form method="POST" action="{{ url_for('search.search', type='sql') }}">
+                    <div class="form-group mb-2">
+                        <label>SQL Query:</label>
+                        <textarea name="query" class="form-control" rows="4"
+                                  placeholder="z.B. SELECT * FROM products WHERE price < 100 LIMIT 10">{{ query }}</textarea>
+                        <small class="text-muted">
+                            ⚠️ Nur SELECT-Queries erlaubt. Beispiele:
+                            <code>SELECT * FROM products WHERE brand = 'Bosch'</code>
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">🔍 Suchen</button>
+                </form>
             </div>
         </div>
-
-        <!-- Vektorsuche -->
-        <div class="tab-pane fade {% if search_type == 'vector' %}show active{% endif %}" id="vector-content">
-            <!-- Inhalt für die Vektorsuche hier -->
-        </div>
-
-        <!-- RAG-LLM Suche -->
-        <div class="tab-pane fade {% if search_type == 'rag' %}show active{% endif %}" id="rag-content">
-            <!-- Inhalt für die RAG-LLM Suche hier -->
-        </div>
-
-        <!-- Graph-RAG Suche -->
-        <div class="tab-pane fade {% if search_type == 'graph' %}show active{% endif %}" id="graph-content">
-            <!-- Inhalt für die Graph-RAG Suche hier -->
-        </div>
-
-        <!-- PDF-RAG Suche -->
-        <div class="tab-pane fade {% if search_type == 'pdf' %}show active{% endif %}" id="pdf-content">
-            <!-- Inhalt für die PDF-RAG Suche hier -->
-        </div>
     </div>
+
+    <div class="tab-pane fade {% if search_type == 'vector' %}show active{% endif %}" id="vector-content"></div>
+    <div class="tab-pane fade {% if search_type == 'rag' %}show active{% endif %}" id="rag-content"></div>
+    <div class="tab-pane fade {% if search_type == 'graph' %}show active{% endif %}" id="graph-content"></div>
+    <div class="tab-pane fade {% if search_type == 'pdf' %}show active{% endif %}" id="pdf-content"></div>
 </div>
 
 <script>
