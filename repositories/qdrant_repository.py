@@ -313,7 +313,36 @@ class QdrantRepositoryImpl(QdrantRepository):
         Returns:
             Set of unique source filenames
         """
-        raise NotImplementedError("TODO: implement unique source listing.")
+        try:
+            if not self.client.collection_exists(collection_name=collection_name):
+                return set()
+
+            sources: set[str] = set()
+            offset = None
+            while True:
+                records, next_offset = self.scroll(
+                    collection_name=collection_name,
+                    limit=256,
+                    with_payload=True,
+                    offset=offset,
+                )
+                if not records:
+                    break
+
+                for record in records:
+                    payload = getattr(record, "payload", None) or {}
+                    source = payload.get("source_filename") or payload.get("source")
+                    if source:
+                        sources.add(str(source))
+
+                if not next_offset:
+                    break
+                offset = next_offset
+
+            return sources
+        except Exception as e:
+            log.error(f"Error listing unique sources in {collection_name}: {e}")
+            return set()
 
     # ======================
     # PDF-specific operations
@@ -338,7 +367,27 @@ class QdrantRepositoryImpl(QdrantRepository):
         Returns:
             Number of chunks uploaded
         """
-        raise NotImplementedError("TODO: implement PDF chunk upload.")
+        if not chunks or not embeddings:
+            return 0
+
+        qdrant_points = []
+        for index, (chunk, embedding) in enumerate(zip(chunks, embeddings), start=1):
+            qdrant_points.append(
+                PointStruct(
+                    id=str(uuid.uuid4()),
+                    vector=embedding,
+                    payload={
+                        "text": chunk.get("text", ""),
+                        "page": int(chunk.get("page", 0) or 0),
+                        "chunk_index": index,
+                        "source_filename": source_filename,
+                        "source": source_filename,
+                    },
+                )
+            )
+
+        self.client.upsert(collection_name=collection_name, points=qdrant_points)
+        return len(qdrant_points)
 
     @staticmethod
     def extract_pdf_chunks(pdf_file, chunk_size: int = 300) -> list[dict]:
@@ -352,7 +401,39 @@ class QdrantRepositoryImpl(QdrantRepository):
         Returns:
             List of chunk dictionaries with 'text' and 'page'
         """
-        raise NotImplementedError("TODO: implement PDF text extraction.")
+        try:
+            if hasattr(pdf_file, "seek"):
+                pdf_file.seek(0)
+
+            chunks: list[dict] = []
+            with pdfplumber.open(pdf_file) as pdf:
+                for page_number, page in enumerate(pdf.pages, start=1):
+                    text = (page.extract_text() or "").strip()
+                    if not text:
+                        continue
+
+                    normalized = " ".join(text.split())
+                    if len(normalized) <= chunk_size:
+                        chunks.append({"text": normalized, "page": page_number})
+                        continue
+
+                    start = 0
+                    while start < len(normalized):
+                        end = min(start + chunk_size, len(normalized))
+                        # Prefer cutting at whitespace if possible
+                        if end < len(normalized):
+                            space = normalized.rfind(" ", start, end)
+                            if space > start + 50:
+                                end = space
+                        chunk_text = normalized[start:end].strip()
+                        if chunk_text:
+                            chunks.append({"text": chunk_text, "page": page_number})
+                        start = end
+        except Exception as e:
+            log.error(f"Error extracting PDF chunks: {e}")
+            return []
+
+        return chunks
 
     def get_pdf_counts(
         self, pdf_collection: str, pdf_products_collection: str
@@ -367,7 +448,13 @@ class QdrantRepositoryImpl(QdrantRepository):
         Returns:
             Dictionary with counts for each collection and total
         """
-        raise NotImplementedError("TODO: implement PDF counts.")
+        teaching_count = len(self.get_unique_sources(pdf_collection))
+        product_count = len(self.get_unique_sources(pdf_products_collection))
+        return {
+            "pdf_skripte": teaching_count,
+            "pdf_produkte": product_count,
+            "total": teaching_count + product_count,
+        }
 
     def list_uploaded_pdfs(self, collection_name: str) -> list[str]:
         """
@@ -379,4 +466,4 @@ class QdrantRepositoryImpl(QdrantRepository):
         Returns:
             Sorted list of unique PDF filenames
         """
-        raise NotImplementedError("TODO: implement PDF list.")
+        return sorted(self.get_unique_sources(collection_name))
