@@ -46,6 +46,24 @@ def search():
                 log.error(f"SQL search error: {e}")
                 flash(str(e), "danger")
 
+        elif search_type == "pdf":
+            try:
+                pdf_result = search_service.pdf_rag_search(query, topk=topk)
+                raw_hits = pdf_result.get("hits", []) if pdf_result else []
+                results = [
+                    {
+                        "source": r.get("source", ""),
+                        "page": r.get("page", ""),
+                        "score": r.get("score"),
+                        "text": r.get("text", ""),
+                    }
+                    for r in raw_hits
+                ]
+                answer = pdf_result.get("answer") if pdf_result else None
+            except Exception as e:
+                log.exception("PDF search error")
+                flash(str(e), "danger")
+
         elif search_type in {"rag", "graph"}:
             try:
                 rag_result = search_service.rag_search(

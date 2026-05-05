@@ -185,7 +185,36 @@ class SearchService:
         Returns:
             Dictionary with 'answer' and 'hits', or None on error
         """
-        raise NotImplementedError("TODO: implement PDF RAG search.")
+        if not query:
+            return {"query": query, "answer": "", "hits": [], "collection": pdf_collection}
+
+        query_vector = self.embed_texts([query])[0]
+        results = self.qdrant_repo.search(
+            collection_name=pdf_collection,
+            query_vector=query_vector,
+            limit=topk,
+            with_payload=True,
+        )
+
+        hits: list[dict] = []
+        for result in results:
+            payload = result.payload or {}
+            text = payload.get("text", "")
+            page = payload.get("page")
+            source = payload.get("source_filename") or payload.get("source") or pdf_collection
+            hits.append(
+                {
+                    "source": source,
+                    "page": page,
+                    "score": result.score,
+                    "text": text,
+                    "document": text,
+                    "graph_source": None,
+                }
+            )
+
+        answer = self._generate_pdf_answer(query, hits)
+        return {"query": query, "answer": answer, "hits": hits, "collection": pdf_collection}
 
     def search_product_pdfs(
         self, query: str, topk: int = 3, pdf_products_collection: str = "pdf_produkte"
@@ -201,7 +230,35 @@ class SearchService:
         Returns:
             List of hit dictionaries
         """
-        raise NotImplementedError("TODO: implement product PDF search.")
+        if not query:
+            return []
+
+        query_vector = self.embed_texts([query])[0]
+        results = self.qdrant_repo.search(
+            collection_name=pdf_products_collection,
+            query_vector=query_vector,
+            limit=topk,
+            with_payload=True,
+        )
+
+        hits: list[dict] = []
+        for result in results:
+            payload = result.payload or {}
+            text = payload.get("text", "")
+            page = payload.get("page")
+            source = payload.get("source_filename") or payload.get("source") or pdf_products_collection
+            hits.append(
+                {
+                    "source": source,
+                    "page": page,
+                    "score": result.score,
+                    "text": text,
+                    "document": text,
+                    "graph_source": None,
+                }
+            )
+
+        return hits
 
     def execute_sql_search(self, query: str) -> list[dict]:
         """
@@ -299,6 +356,58 @@ class SearchService:
             log.exception("LLM answer generation failed")
 
         return "LLM-Antwort konnte nicht generiert werden. Gefundene Treffer:\n" + "\n".join(lines)
+
+    def _generate_pdf_answer(self, query: str, hits: list[dict]) -> str:
+        """
+        Generate an answer for PDF search hits.
+
+        Args:
+            query: User query
+            hits: PDF hits with source/page/text
+
+        Returns:
+            LLM-generated answer or fallback summary
+        """
+        if not hits:
+            return "Keine Treffer in den PDF-Dokumenten gefunden."
+
+        excerpts = []
+        for index, hit in enumerate(hits[:5], start=1):
+            source = hit.get("source") or "Unbekannt"
+            page = hit.get("page") or "?"
+            text = (hit.get("text") or "").strip()
+            preview = text[:240] + ("..." if len(text) > 240 else "")
+            excerpts.append(f"{index}. {source} | Seite {page} | {preview}")
+
+        client = self._get_llm_client()
+        if client is None:
+            return "LLM ist nicht konfiguriert. Gefundene PDF-Treffer:\n" + "\n".join(excerpts)
+
+        model = current_app.config.get("LLM_MODEL", "gpt-4.1-mini")
+        prompt = (
+            "Du beantwortest kurze Fragen auf Deutsch anhand von PDF-Ausschnitten. "
+            "Nutze nur den gegebenen Kontext und nenne Unsicherheiten offen.\n\n"
+            f"Anfrage: {query}\n\n"
+            "PDF-Kontext:\n"
+            + "\n".join(excerpts)
+        )
+
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "Du antwortest präzise und sachlich auf Deutsch."},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+            )
+            content = response.choices[0].message.content if response.choices else None
+            if content:
+                return content.strip()
+        except Exception:
+            log.exception("PDF LLM answer generation failed")
+
+        return "PDF-Antwort konnte nicht generiert werden. Gefundene Treffer:\n" + "\n".join(excerpts)
 
     @staticmethod
     def _coerce_int(value) -> Optional[int]:
