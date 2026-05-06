@@ -6,6 +6,7 @@
   --panel-border: rgba(255, 255, 255, 0.09);
   --text-main: #eef2f7;
   --text-soft: #a5b0be;
+  --text-placeholder: #c7d0dc;
   --line: rgba(255, 255, 255, 0.08);
   --accent: #f4c96b;
   --accent-strong: #ffe2a8;
@@ -202,6 +203,14 @@ p, li, label, .form-text, .text-muted {
   background-color: var(--panel) !important;
   color: var(--text-main) !important;
   border-color: var(--panel-border) !important;
+}
+
+.form-control::placeholder,
+.form-select::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-placeholder) !important;
+  opacity: 1;
 }
 
 .card {
