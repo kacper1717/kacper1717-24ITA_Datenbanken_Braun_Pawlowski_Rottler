@@ -11,17 +11,38 @@ USE productdb;
 -- Fuer die Aufgabe legen wir explizit die geforderten Indizes
 -- auf Produktname, Marke und Kategorie an.
 
-DROP INDEX IF EXISTS idx_products_name ON products;
-DROP INDEX IF EXISTS idx_products_brand_id ON products;
-DROP INDEX IF EXISTS idx_products_category_id ON products;
+SET @s = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+           WHERE table_schema = DATABASE() AND table_name = 'products'
+           AND index_name = 'idx_products_name'),
+    'SELECT ''idx_products_name already exists''',
+    'CREATE INDEX idx_products_name ON products(name)');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CREATE INDEX idx_products_name ON products(name);
-CREATE INDEX idx_products_brand_id ON products(brand_id);
-CREATE INDEX idx_products_category_id ON products(category_id);
+SET @s = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+           WHERE table_schema = DATABASE() AND table_name = 'products'
+           AND index_name = 'idx_products_brand_id'),
+    'SELECT ''idx_products_brand_id already exists''',
+    'CREATE INDEX idx_products_brand_id ON products(brand_id)');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+           WHERE table_schema = DATABASE() AND table_name = 'products'
+           AND index_name = 'idx_products_category_id'),
+    'SELECT ''idx_products_category_id already exists''',
+    'CREATE INDEX idx_products_category_id ON products(category_id)');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Optionaler Zusatzindex fuer Bereichsabfragen und Sortierung nach Preis.
-DROP INDEX IF EXISTS idx_products_price ON products;
-CREATE INDEX idx_products_price ON products(price);
+SET @s = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+           WHERE table_schema = DATABASE() AND table_name = 'products'
+           AND index_name = 'idx_products_price'),
+    'SELECT ''idx_products_price already exists''',
+    'CREATE INDEX idx_products_price ON products(price)');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 
 -- ---------------------------------------------------------
