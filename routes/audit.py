@@ -12,8 +12,8 @@ bp = Blueprint("audit", __name__)
 @bp.get("/audit")
 def audit():
     """View audit log with pagination"""
-    page = _get_int("page", 1)
-    page_size = _get_int("page_size", 50)
+    page = _get_int(request.args.get("page"), 1)
+    page_size = _get_int(request.args.get("page_size"), 50)
     product_service = ServiceFactory.get_product_service()
 
     try:
