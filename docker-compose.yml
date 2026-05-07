@@ -8,6 +8,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-productdb}
       MYSQL_USER: ${MYSQL_USER:-app}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Europe/Berlin
     ports:
       # Port verschoben auf 3316
       - "${SKELETON_MYSQL_HOST_PORT:-3316}:3306"
