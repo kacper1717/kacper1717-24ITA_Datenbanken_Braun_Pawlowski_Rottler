@@ -11,7 +11,7 @@ from datetime import datetime
 from flask import current_app
 from sentence_transformers import SentenceTransformer
 
-from repositories import QdrantRepository, MySQLRepository, Neo4jRepository
+from repositories import QdrantRepository, MySQLRepository
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +24,6 @@ class IndexService:
         qdrant_repo: QdrantRepository,
         mysql_repo: MySQLRepository,
         embedding_model: Optional[SentenceTransformer] = None,
-        neo4j_repo: Optional[Neo4jRepository] = None,
     ):
         """
         Initialize index service.
@@ -33,21 +32,19 @@ class IndexService:
             qdrant_repo: Qdrant repository for vector operations
             mysql_repo: MySQL repository for loading products
             embedding_model: Optional pre-initialized embedding model
-            neo4j_repo: Optional Neo4j repository for graph indexing
         """
         self.qdrant_repo = qdrant_repo
         self.mysql_repo = mysql_repo
         self._embedding_model = embedding_model
-        self.neo4j_repo = neo4j_repo
 
     def _get_embedding_model(self) -> SentenceTransformer:
         """Lazy-load embedding model"""
         if self._embedding_model is None:
-            import os
-            from sentence_transformers import SentenceTransformer
-            model_name = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
-            log.info(f"Loading embedding model: {model_name}")
+            model_name = current_app.config.get(
+                "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+            )
             self._embedding_model = SentenceTransformer(model_name)
+            log.info(f"✓ Embedding model loaded: {model_name}")
         return self._embedding_model
 
     def embed_texts(self, texts: list[str]) -> list:
@@ -60,12 +57,8 @@ class IndexService:
         Returns:
             List of embedding vectors (numpy arrays)
         """
-        if not texts:
-            return []
         model = self._get_embedding_model()
-        # encode returns a numpy array, convert to list of floats for Qdrant
-        embeddings = model.encode(texts)
-        return embeddings.tolist()
+        return model.encode(texts, normalize_embeddings=True)
 
     @staticmethod
     def product_to_document(product: dict) -> str:
@@ -78,23 +71,24 @@ class IndexService:
         Returns:
             Formatted document string
         """
-        # Combine all relevant fields into a rich text document for better semantic search
-        parts = []
-        parts.append(f"Produkt: {product.get('name', '')}")
-        
-        brand = product.get('brand')
-        if brand: parts.append(f"Marke: {brand}")
-        
-        category = product.get('category')
-        if category: parts.append(f"Kategorie: {category}")
-        
-        desc = product.get('description')
-        if desc: parts.append(f"Beschreibung: {desc}")
-        
-        tags = product.get('tags', [])
-        if tags: parts.append(f"Tags: {', '.join(tags)}")
-        
-        return " | ".join(parts)
+        parts: list[str] = []
+        if product.get("title"):
+            parts.append(product["title"])
+        if product.get("description"):
+            parts.append(product["description"])
+        if product.get("brand"):
+            parts.append(f"Marke: {product['brand']}")
+        if product.get("category"):
+            parts.append(f"Kategorie: {product['category']}")
+        if product.get("tags"):
+            parts.append("Tags: " + ", ".join(product["tags"]))
+        if product.get("application"):
+            parts.append(f"Anwendung: {product['application']}")
+        if product.get("load_class"):
+            parts.append(f"Belastung: {product['load_class']}")
+        if product.get("temperature_range"):
+            parts.append(f"Temperatur: {product['temperature_range']}")
+        return "\n".join(parts).strip()
 
     def build_index(
         self, strategy: str = "A", limit: Optional[int] = None, batch_size: int = 64
@@ -115,86 +109,99 @@ class IndexService:
         Returns:
             Dictionary with indexing statistics
         """
-        log.info(f"Starting index build with strategy={strategy}, limit={limit}")
-        
-        # 1. Fetch products from MySQL
+        t0 = time.time()
+        log.info(
+            "action=index_service_build_start strategy=%s limit=%s batch_size=%s",
+            strategy,
+            limit,
+            batch_size,
+        )
+
+        collection = self.qdrant_repo.default_collection
+        vector_dim = current_app.config.get("EMBEDDING_DIM", 384)
+
+        # Strategy C: Complete rebuild
+        if (strategy or "").upper().strip() == "C":
+            log.info("Strategy C: Complete rebuild - deleting collection")
+            self.qdrant_repo.delete_collection(collection)
+
+        # Ensure collection exists
+        self.qdrant_repo.ensure_collection(
+            collection_name=collection, vector_size=vector_dim, distance="COSINE"
+        )
+
+        # Load products from MySQL
         products = self.mysql_repo.load_products_for_index(limit=limit, include_tags=True)
-        if not products:
-            log.warning("No products found in MySQL to index.")
-            return {"status": "error", "message": "No products found"}
+        processed = len(products)
 
-        # 2. Ensure Qdrant collection exists (default vector size for MiniLM is 384)
-        import os
-        vector_size = int(os.getenv("EMBEDDING_DIM", "384"))
-        collection = "products"
-        self.qdrant_repo.ensure_collection(collection_name=collection, vector_size=vector_size)
+        if processed == 0:
+            log.info("action=index_service_build_empty strategy=%s", strategy)
+            return {
+                "strategy": strategy,
+                "processed": 0,
+                "written": 0,
+                "seconds": round(time.time() - t0, 3),
+            }
 
-        # 3. Process in batches
-        total_processed = 0
-        total_written = 0
-        
-        for i in range(0, len(products), batch_size):
-            batch = products[i:i + batch_size]
-            
-            # Prepare documents
-            texts = [self.product_to_document(p) for p in batch]
-            
-            # Generate embeddings
-            embeddings = self.embed_texts(texts)
-            
-            # Prepare points for Qdrant
-            points = []
-            for p, emb, txt in zip(batch, embeddings, texts):
-                points.append({
-                    "id": p["id"],
-                    "vector": emb,
-                    "payload": {
-                        "name": p.get("name"),
-                        "brand": p.get("brand"),
-                        "category": p.get("category"),
-                        "price": float(p.get("price", 0.0)),
-                        "document": txt
-                    }
-                })
-            
-            # Upsert to Qdrant
+        # Convert products to documents and generate embeddings
+        docs = [self.product_to_document(p) for p in products]
+        vectors = self.embed_texts(docs)
+
+        log.info(f"Generated {len(vectors)} embeddings for {processed} products")
+
+        # Upsert in batches
+        written = 0
+        for i in range(0, processed, batch_size):
+            batch_products = products[i : i + batch_size]
+            batch_docs = docs[i : i + batch_size]
+            batch_vectors = vectors[i : i + batch_size]
+
+            points: list[dict] = []
+            for p, doc, vec in zip(batch_products, batch_docs, batch_vectors):
+                payload = {
+                    "mysql_id": p["id"],
+                    ##"sku": p.get("sku"),
+                    "title": p.get("title"),
+                    "brand": p.get("brand"),
+                    "category": p.get("category"),
+                    "tags": p.get("tags", []),
+                    "price": float(p["price"]) if p.get("price") is not None else None,
+                    ## "doc_preview": doc[:300],
+                    "doc_preview": doc,
+                    "indexed_at": datetime.utcnow().isoformat(),
+                }
+                sku = p.get("sku")
+                if sku:  # nur wenn nicht None/leer
+                    payload["sku"] = sku
+                points.append({"id": p["id"], "vector": vec.tolist(), "payload": payload})
+
             self.qdrant_repo.upsert_points(collection_name=collection, points=points)
-            
-            total_processed += len(batch)
-            total_written += len(points)
-            log.info(f"Indexed batch: {total_written}/{len(products)}")
+            written += len(points)
 
-        # 4. Optionally sync to Neo4j
-        if self.neo4j_repo:
-            try:
-                # Prepare minimal product data for Neo4j
-                neo4j_products = [
-                    {
-                        "id": p.get("id"),
-                        "name": p.get("name", ""),
-                        "brand": p.get("brand", ""),
-                        "category": p.get("category", ""),
-                        "price": float(p.get("price", 0.0)),
-                        "description": p.get("description", ""),
-                    }
-                    for p in products
-                ]
-                self.neo4j_repo.upsert_products(neo4j_products)
-                log.info(f"Synced {len(neo4j_products)} products to Neo4j")
-            except Exception as e:
-                log.warning(f"Neo4j sync failed (continuing anyway): {e}")
+            log.debug(f"Batch {i // batch_size + 1}: Upserted {len(points)} points")
 
-        # 5. Log the run in MySQL
-        self.mysql_repo.log_etl_run(
-            strategy=strategy,
-            products_processed=total_processed,
-            products_written=total_written
+        # Log to ETL run log
+        try:
+            self.mysql_repo.log_etl_run(
+                strategy=strategy, products_processed=processed, products_written=written
+            )
+        except Exception as e:
+            log.warning(f"Failed to log ETL run: {e}")
+
+        elapsed = round(time.time() - t0, 3)
+        log.info(
+            "action=index_service_build_done strategy=%s processed=%s written=%s seconds=%s",
+            strategy,
+            processed,
+            written,
+            elapsed,
         )
 
         return {
-            "status": "success",
-            "products_processed": total_processed,
-            "products_written": total_written
+            "strategy": strategy,
+            "processed": processed,
+            "written": written,
+            "seconds": elapsed,
         }
 
     def get_index_status(self) -> dict:
@@ -204,22 +211,37 @@ class IndexService:
         Returns:
             Dictionary with index statistics
         """
-        import os
-        count = self.qdrant_repo.count(collection_name="products")
-        collection_info = self.get_collection_info()
-
+        collection = self.qdrant_repo.default_collection
+        count_indexed = 0
         last_indexed_at = None
-        runs = self.mysql_repo.get_last_runs(limit=1)
-        if runs:
-            last_indexed_at = runs[0].get("run_timestamp")
+        collection_info: dict = {}
+
+        # Get count from Qdrant
+        try:
+            count_indexed = self.qdrant_repo.count(collection_name=collection, exact=True)
+        except Exception as e:
+            log.error(f"Failed to get Qdrant count: {e}")
+
+        # Get collection info from Qdrant
+        try:
+            collection_info = self.qdrant_repo.get_collection_info(collection)
+        except Exception as e:
+            log.error(f"Failed to get collection info: {e}")
+
+        # Get last indexed timestamp from MySQL
+        try:
+            dashboard_stats = self.mysql_repo.get_dashboard_stats()
+            last_indexed_at = dashboard_stats.get("last_indexed_at")
+        except Exception as e:
+            log.error(f"Failed to get last indexed timestamp: {e}")
 
         return {
-            "indexed_products": count,
-            "count_indexed": count,
-            "status": "online" if count > 0 else "empty",
+            "count_indexed": count_indexed,
             "last_indexed_at": last_indexed_at,
-            "embedding_model": os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
             "collection_info": collection_info,
+            "embedding_model": current_app.config.get(
+                "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+            ),
         }
 
     def truncate_index(self, collection_name: Optional[str] = None) -> None:
@@ -229,15 +251,19 @@ class IndexService:
         Args:
             collection_name: Optional collection name (uses default if None)
         """
-        self.qdrant_repo.truncate_index(collection_name=collection_name)
-        
-        # Also clear Neo4j if available
-        if self.neo4j_repo:
-            try:
-                self.neo4j_repo.clear_products()
-                log.info("Cleared Neo4j products")
-            except Exception as e:
-                log.warning(f"Neo4j clear failed: {e}")
+        collection = collection_name or self.qdrant_repo.default_collection
+        vector_dim = current_app.config.get("EMBEDDING_DIM", 384)
+        log.info("action=index_service_truncate_start collection=%s", collection)
+
+        # Delete collection
+        self.qdrant_repo.delete_collection(collection)
+
+        # Recreate empty collection
+        self.qdrant_repo.ensure_collection(
+            collection_name=collection, vector_size=vector_dim, distance="COSINE"
+        )
+
+        log.info("action=index_service_truncate_done collection=%s", collection)
 
     def get_collection_info(self, collection_name: Optional[str] = None) -> dict:
         """
@@ -249,5 +275,5 @@ class IndexService:
         Returns:
             Dictionary with collection information
         """
-        col = collection_name or "products"
-        return self.qdrant_repo.get_collection_info(collection_name=col)
+        collection = collection_name or self.qdrant_repo.default_collection
+        return self.qdrant_repo.get_collection_info(collection)
