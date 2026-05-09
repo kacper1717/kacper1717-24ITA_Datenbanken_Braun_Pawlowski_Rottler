@@ -66,14 +66,14 @@ class IndexService:
         Convert a product dictionary to a searchable document string.
 
         Args:
-            product: Product dictionary with fields
+            product: Product dictionary with fields from MySQL
 
         Returns:
             Formatted document string
         """
         parts: list[str] = []
-        if product.get("title"):
-            parts.append(product["title"])
+        if product.get("name"):  # MySQL column is 'name', not 'title'
+            parts.append(product["name"])
         if product.get("description"):
             parts.append(product["description"])
         if product.get("brand"):
@@ -161,13 +161,13 @@ class IndexService:
                 payload = {
                     "mysql_id": p["id"],
                     ##"sku": p.get("sku"),
-                    "title": p.get("title"),
+                    "name": p.get("name"),  # MySQL column is 'name'
                     "brand": p.get("brand"),
                     "category": p.get("category"),
                     "tags": p.get("tags", []),
                     "price": float(p["price"]) if p.get("price") is not None else None,
                     ## "doc_preview": doc[:300],
-                    "doc_preview": doc,
+                    "document": doc,
                     "indexed_at": datetime.utcnow().isoformat(),
                 }
                 sku = p.get("sku")
