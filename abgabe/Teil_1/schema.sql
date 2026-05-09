@@ -36,8 +36,9 @@ CREATE TABLE products (
     CONSTRAINT fk_products_brand
         FOREIGN KEY (brand_id)
         REFERENCES brands(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT -- Brand/Kategorie kann nicht gelöscht werden, solange Produkte darauf zeigen
+        ON UPDATE CASCADE, -- Ändert sich brand_id in brands wird brand_id in products automatisch mitgeändert
+        
 
     CONSTRAINT fk_products_category
         FOREIGN KEY (category_id)
