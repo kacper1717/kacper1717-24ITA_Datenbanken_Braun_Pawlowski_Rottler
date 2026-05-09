@@ -7,7 +7,7 @@ import logging
 
 from flask import current_app
 
-from repositories import MySQLRepository, QdrantRepository
+from repositories import MySQLRepository, QdrantRepository, DashboardRepository
 from validation import validate_mysql as _validate_mysql
 from validation import ValidationItem, ValidationReport
 
@@ -17,16 +17,18 @@ log = logging.getLogger(__name__)
 class ProductService:
     """Service for product-related operations"""
 
-    def __init__(self, mysql_repo: MySQLRepository, qdrant_repo: QdrantRepository):
+    def __init__(self, mysql_repo: MySQLRepository, qdrant_repo: QdrantRepository, dashboard_repo: DashboardRepository):
         """
         Initialize product service.
 
         Args:
             mysql_repo: MySQL repository for database operations
             qdrant_repo: Qdrant repository for vector index stats
+            dashboard_repo: Dashboard repository for aggregated dashboard data
         """
         self.mysql_repo = mysql_repo
         self.qdrant_repo = qdrant_repo
+        self.dashboard_repo = dashboard_repo
 
     def list_products_joined(self, page: int = 1, page_size: int = 20) -> dict:
         """
@@ -166,7 +168,12 @@ class ProductService:
         Returns:
             Total product count
         """
-        raise NotImplementedError("TODO: implement product count.")
+        try:
+            counts = self.dashboard_repo.get_mysql_counts()
+            return counts.get("products", 0)
+        except Exception as e:
+            log.error(f"Error getting product count: {e}")
+            return 0
 
     def get_brand_count(self) -> int:
         """
@@ -175,7 +182,12 @@ class ProductService:
         Returns:
             Total brand count
         """
-        raise NotImplementedError("TODO: implement brand count.")
+        try:
+            counts = self.dashboard_repo.get_mysql_counts()
+            return counts.get("brands", 0)
+        except Exception as e:
+            log.error(f"Error getting brand count: {e}")
+            return 0
 
     def get_category_count(self) -> int:
         """
@@ -184,7 +196,12 @@ class ProductService:
         Returns:
             Total category count
         """
-        raise NotImplementedError("TODO: implement category count.")
+        try:
+            counts = self.dashboard_repo.get_mysql_counts()
+            return counts.get("categories", 0)
+        except Exception as e:
+            log.error(f"Error getting category count: {e}")
+            return 0
 
     def get_summary_stats(self) -> dict:
         """
@@ -193,6 +210,28 @@ class ProductService:
         Returns:
             Dictionary with summary statistics
         """
-        raise NotImplementedError("TODO: implement summary stats.")
+        try:
+            mysql_counts = self.dashboard_repo.get_mysql_counts()
+            last_runs = self.dashboard_repo.get_last_runs(limit=5)
+            last_indexed_at = self.dashboard_repo.get_last_indexed_at()
+            
+            return {
+                "products": mysql_counts.get("products", 0),
+                "brands": mysql_counts.get("brands", 0),
+                "categories": mysql_counts.get("categories", 0),
+                "tags": mysql_counts.get("tags", 0),
+                "last_runs": last_runs,
+                "last_indexed_at": last_indexed_at
+            }
+        except Exception as e:
+            log.error(f"Error getting summary stats: {e}")
+            return {
+                "products": 0,
+                "brands": 0,
+                "categories": 0,
+                "tags": 0,
+                "last_runs": [],
+                "last_indexed_at": None
+            }
 
 

@@ -148,10 +148,12 @@ class ServiceFactory:
         if "product" not in cls._instances:
             mysql_repo = RepositoryFactory.get_mysql_repository()
             qdrant_repo = RepositoryFactory.get_qdrant_repository()
+            dashboard_repo = RepositoryFactory.get_dashboard_repository()
 
             cls._instances["product"] = ProductService(
                 mysql_repo=mysql_repo,
                 qdrant_repo=qdrant_repo,
+                dashboard_repo=dashboard_repo,
             )
             log.debug("ProductService instance created")
         return cls._instances["product"]

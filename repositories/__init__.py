@@ -118,7 +118,8 @@ class RepositoryFactory:
             DashboardRepository instance
         """
         if "dashboard" not in cls._instances:
-            cls._instances["dashboard"] = DashboardRepositoryImpl()
+            mysql_repo = cls.get_mysql_repository()
+            cls._instances["dashboard"] = DashboardRepositoryImpl(mysql_repo=mysql_repo)
             log.debug("Dashboard repository instance created")
         return cls._instances["dashboard"]
 
