@@ -1,75 +1,126 @@
-# Projektarbeit: Relationale Datenbanken, semantische Suche
+# DB → VectorDB Manager
 
-**Studiengang:** Informatik / Datenbanksysteme  
-**Dozent:** Karsten Keßler, DHBW Stuttgart    
-**Technologien:** MySQL 8.4 · Qdrant · Python · SQL
+Flask-Anwendung für eine Datenbank-Projektarbeit mit MySQL als Source of Truth, Qdrant für semantische Suche, optionalem Neo4j-Enrichment und RAG-Funktionen über ein LLM.
 
----
+## Überblick
 
-## Branch
+Das Projekt kombiniert mehrere Ebenen:
 
-Dieser Branch enthält nur die Klassen- und Methodensignaturen in `routes/`, `services/` und `repositories/`. Die Implementierungen müssen von den Studierenden ergänzt werden. Tests sind für die Studierenden nicht verpflichtend. Konfigurationen werden mit einer Dummy-`.env` mitgeliefert; `.env.example` enthält leere Platzhalter.
+- MySQL speichert die Produktdaten und ist die fachliche Hauptquelle.
+- Qdrant speichert Embeddings und ermöglicht Vektorsuche.
+- Neo4j kann Produktbeziehungen für Graph-RAG anreichern.
+- Die Flask-App bietet UI, Suche, PDF-Upload, Validierung und Dashboard.
 
-### Mindest-Konfiguration (.env)
+## Schnellstart mit Docker
 
-Zum Start der App genügt die mitgelieferte Dummy-`.env` (die App zeigt dann nur den Hinweis). Sobald die Features implementiert sind, benötigt man mindestens:
+1. Stelle sicher, dass Docker und Docker Compose installiert sind.
+2. Lege die Konfiguration an:
 
-**Pflicht (für DB-Funktionen):**
--   `MYSQL_URL`
+```bash
+cp .env.example .env
+```
 
-**Pflicht (für Vektorsuche):**
--   `QDRANT_URL`
--   `EMBEDDING_MODEL`
--   `EMBEDDING_DIM`
+3. Starte alle Dienste:
 
-**Optional (nur wenn genutzt):**
--   `OPENAI_API_KEY` und `LLM_MODEL` für RAG/LLM-Antworten
--   `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` für Graph-Enrichment
+```bash
+docker compose up -d --build
+```
 
----
+4. Öffne die App im Browser:
 
-## 🎯 Ziel der Projektarbeit
+```text
+http://localhost:8081
+```
 
-Ziel dieser Projektarbeit ist es, klassische relationale Datenbanksysteme mit modernen semantischen Such- und Kontextverfahren zu kombinieren und deren jeweilige Stärken, Grenzen und Einsatzgebiete zu verstehen. Im Mittelpunkt steht nicht der Einsatz einzelner Tools, sondern das Zusammenspiel unterschiedlicher Datenbank- und Suchparadigmen:
+Beim ersten Start werden die MySQL-Initialdaten aus `mysql-init/` geladen und die Container für MySQL, Qdrant, Neo4j und die Flask-App gestartet.
 
--   relationale Datenbanken als strukturierte, konsistente Source of Truth
--   Vektor-Datenbanken zur semantischen Ähnlichkeitssuche
--   optionale graphbasierte Modelle zur Kontext- und Beziehungsanreicherung
+## Wichtige URLs
 
-## 🧠 Lernziele
+- App: http://localhost:8081
+- Adminer: http://localhost:8990
+- Neo4j Browser: http://localhost:7484
+- Qdrant API: http://localhost:6343
 
-Die Studierenden sollen im Rahmen des Projekts zeigen, dass sie:
+## Standard-Konfiguration
 
--   einen realistischen Produktdatenbestand sauber relational modellieren
--   klassische Datenbankmechanismen wie Transaktionen, Trigger und Stored Procedures gezielt einsetzen
--   Indizes verstehen, begründen und im Kontext von Performance bewerten können
--   strukturierte Daten in textuelle Repräsentationen und semantische Vektoren überführen
--   semantische Suchanfragen implementieren, analysieren und kritisch bewerten
--   moderne Sucharchitekturen fachlich einordnen, statt sie nur anzuwenden
--   den Unterschied zwischen Datenhaltung, Suche und Kontextinterpretation klar trennen können
+Die Datei [.env.example](.env.example) enthält die üblichen Standardwerte. Für den lokalen Start reichen meistens diese Werte:
 
-## 🧱 Projektcharakter und Rahmenbedingungen
+- `FLASK_SECRET_KEY=dev-secret`
+- `MYSQL_DATABASE=productdb`
+- `MYSQL_USER=app`
+- `MYSQL_ROOT_PASSWORD=admin123`
+- `MYSQL_PASSWORD=app`
+- `MYSQL_URL=mysql+pymysql://app:app@mysql:3306/productdb`
+- `QDRANT_URL=http://qdrant:6333`
+- `NEO4J_URI=bolt://neo4j:7687`
+- `NEO4J_USER=neo4j`
+- `NEO4J_PASSWORD=admin123`
+- `EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2`
+- `EMBEDDING_DIM=384`
 
-Alle Studierenden arbeiten mit dem gleichen Ausgangsdatenbestand. Die Datenbasis wird nicht inhaltlich verändert, sondern logisch erweitert. Die relationale Datenbank bildet die verbindliche Datenquelle. Semantische und weitere Komponenten dienen ausschließlich der Suche, Analyse und Kontextbildung. Unterschiedliche Lösungsansätze sind ausdrücklich erwünscht. Wichtig: Der Datenbestand ist identisch – die Lösungen sind es nicht.
+Optional für RAG/LLM:
 
-**Gesamt-Workflow (konzeptionell)**
-Das Projekt orientiert sich an folgendem konzeptionellen Daten- und Verarbeitungsfluss: 
-*CSV → Relationale Datenbank (MySQL) → strukturierte & textuelle Repräsentationen → Embeddings → Vektor-Datenbank (Qdrant) → semantische Suche → optionale Kontextanreicherung (z. B. Graph-basierte Modelle) → RAG-gestützte LLM-Antworten.*
+- `OPENAI_API_KEY`
+- `LLM_MODEL`
 
-## 🧩 Einordnung moderner Verfahren (optional)
+## Login und Zugriff
 
-Das Projekt bietet Raum und Grundlage, moderne Konzepte wie Retrieval-Augmented Generation (RAG) einzuordnen:
+Die Anwendung besitzt kein separates Login-System. Der Zugriff erfolgt direkt über die Weboberfläche auf Port 8081. Für Datenbankzugriffe können Adminer oder die jeweiligen Container-Ports aus der Compose-Datei verwendet werden.
 
--   Vektorsuche liefert relevante Inhalte
--   relationale Strukturen sichern Korrektheit und Konsistenz
--   graphbasierte Modelle können Beziehungen und Kontext sichtbar machen 
+Typische Bereiche in der App:
 
-Diese Konzepte sind kein Selbstzweck, sondern dienen der reflektierten Analyse moderner Datenarchitekturen. 
+- Dashboard
+- Produktliste
+- Index-/Embedding-Verwaltung
+- Vektor-, SQL-, RAG- und Graph-RAG-Suche
+- PDF-Upload und PDF-RAG
+- Validierung und Audit
 
-> 💡 **Weiterführende Materialien zu LLMs:** Ergänzende Informationen, Erklärungen und Hintergründe zum Thema Large Language Models (LLM) findet man unter: **[https://tutor.kkessler.de/llm](https://tutor.kkessler.de/llm)**
+## Entwicklung lokal
 
-## 🧭 Leitgedanke des Projekts
+Für einen direkten Start außerhalb von Docker werden zunächst die Abhängigkeiten installiert:
 
-*Relationale Datenbanken sichern Wahrheit – semantische Verfahren erweitern den Blick.*
+```bash
+pip install -r requirements.txt
+```
 
-*(Hinweis: GraphDB- und LLM-gestützte RAG-Verfahren sind optional. Der Schwerpunkt des Projekts liegt auf relationalen Datenbanken.)*
+Anschließend kann die Flask-Anwendung mit folgendem Befehl gestartet werden:
+
+```bash
+python3 app.py
+```
+
+Hinweis: Für einen sinnvollen Lauf müssen MySQL, Qdrant und optional Neo4j erreichbar sein und die passenden Umgebungsvariablen gesetzt sein.
+
+## Tests
+
+Für die SQL-Übungen und Beispieltests gibt es ein eigenes Skript:
+
+```bash
+bash tests/run_tests.sh
+```
+
+Das Skript erwartet eine erreichbare MySQL-Instanz und verwendet die SQL-Dateien aus `src/sql/` zusammen mit dem Seed aus `tests/fixtures/seed.sql`.
+
+## Projektstruktur
+
+- `app.py` - Flask Application Factory
+- `config.py` - Konfiguration über Umgebungsvariablen
+- `routes/` - Blueprints für UI und API-Endpunkte
+- `services/` - Business-Logik
+- `repositories/` - Datenzugriff auf MySQL, Qdrant und Neo4j
+- `templates/` - HTML-Templates
+- `static/` - CSS und Bilder
+- `mysql-init/` - Initialisierung von Schema und Import
+- `abgabe/` - Abgabeunterlagen und SQL-Teile
+- `tests/` - Testskripte und Fixtures
+
+## Wichtige Hinweise
+
+- Wenn Vektorsuche oder RAG nur Platzhalter liefern, prüfe zuerst, ob der Index in Qdrant neu aufgebaut wurde.
+- Wenn Neo4j nicht verfügbar ist, bleibt die App trotzdem lauffähig; Graph-RAG ist dann nur eingeschränkt.
+- Wenn `OPENAI_API_KEY` fehlt, nutzt die App einen Fallback für RAG-Antworten.
+
+## Referenz
+
+Weitere fachliche Hintergründe stehen in der Abgabe und in der Vergleichsanalyse unter `abgabe/Teil_2/`.
