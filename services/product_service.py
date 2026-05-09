@@ -149,10 +149,21 @@ class ProductService:
         Returns:
             Validation report dictionary
         """
-        required_tables = ["products", "brands", "categories", "tags", "product_tags", "etl_run_log"]
+        # Check core tables (have 'id' column)
+        core_tables = ["products", "brands", "categories", "tags", "etl_run_log"]
+        # Junction tables (no 'id' column, use composite keys)
+        junction_tables = ["product_tags"]
+        
         missing_tables = []
-        for table in required_tables:
+        
+        # Verify core tables have 'id' column
+        for table in core_tables:
             if not self.mysql_repo.has_column(table, "id"):
+                missing_tables.append(table)
+        
+        # Verify junction tables exist (check for at least one expected column)
+        for table in junction_tables:
+            if not self.mysql_repo.has_column(table, "product_id"):
                 missing_tables.append(table)
         
         return {
