@@ -41,6 +41,16 @@ Beim ersten Start werden die MySQL-Initialdaten aus `mysql-init/` geladen und di
 - Neo4j Browser: http://localhost:7484
 - Qdrant API: http://localhost:6343
 
+## Neo4j-Synchronisation
+
+Zum Synchronisieren der relationalen Produktdaten aus MySQL mit Neo4j kann das mitgelieferte Sync-Skript im `app`-Container ausgeführt werden. Beispiel (aus dem Projektverzeichnis):
+
+```bash
+docker compose exec app python /app/scripts/sync_mysql_to_neo4j.py
+```
+
+Vor Ausführung ist sicherzustellen, dass die MySQL- und Neo4j-Container laufen und die relevanten Umgebungsvariablen in `.env` gesetzt sind.
+
 ## Standard-Konfiguration
 
 Die Datei [.env.example](.env.example) enthält die üblichen Standardwerte. Für den lokalen Start reichen meistens diese Werte:
