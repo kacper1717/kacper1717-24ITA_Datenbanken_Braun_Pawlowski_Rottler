@@ -1,12 +1,11 @@
 # Vergleichsanalyse der Suchmethoden
 
-Dieses Dokument vergleicht die vier im Projekt implementierten Suchmethoden anhand
-ihrer konkreten Umsetzung im Code. Betrachtet werden:
+Im Folgendem werden die vier im Projekt implementierten Suchmethoden verglichen. Dabei werden folgende Suchmethoden betrachtet:
 
-1. Klassische SQL-Suche (MySQL + B+-Tree-Index)
-2. Vektorsuche (Qdrant + sentence-transformers)
-3. Semantische Suche / RAG (Vektorsuche + LLM-Antwort)
-4. Graph-DB-Anreicherung + LLM (Neo4j + Vektorsuche + LLM)
+1. SQL-Suche
+2. Vektorsuche
+3. RAG-LLM (Vektorsuche + KI-generierte Antwort)
+4. Graph-RAG (Neo4j + Vektorsuche + LLM)
 
 ---
 

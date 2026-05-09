@@ -87,6 +87,8 @@ END$$
 
 DELIMITER ;
 
+
+-- Test-Update, um den Trigger zu aktivieren und die Audit-Tabelle zu füllen
 -- ------------
 /*
 UPDATE products 

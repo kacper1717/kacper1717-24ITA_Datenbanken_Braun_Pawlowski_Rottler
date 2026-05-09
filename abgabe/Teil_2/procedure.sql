@@ -117,7 +117,7 @@ END$$
 
 DELIMITER ;
 
-
+-- Testaufrufe der Prozedur
 --
 /*
 CALL import_product(

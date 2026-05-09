@@ -3,8 +3,9 @@
 -- A2 Transaktionen - fachliche Datenbankoperationen
 --
 -- Enthaltene Fälle:
--- 1) Produkt anlegen inkl. Marke, Kategorie und Tags
--- 2) Rollback-Demo bei fachlichem Fehlerfall (Doppel-Eintrag)
+-- 1) ROLLBACK-DEMO: Rollback bei fachlichem Fehler (Doppel-Eintrag)
+-- 2) UPDATE: Produkt konsistent aktualisieren (inkl. Tags, Marke, Kategorie)
+-- 3) DELETE: Produkt löschen mit referenzieller Integrität
 --
 -- Voraussetzungen:
 -- - Teil-1-Schema und Import sind bereits eingespielt

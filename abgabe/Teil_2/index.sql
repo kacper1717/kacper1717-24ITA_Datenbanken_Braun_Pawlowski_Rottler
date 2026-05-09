@@ -8,8 +8,7 @@ USE productdb;
 -- ---------------------------------------------------------
 -- 1) Gezielte Indizes
 -- ---------------------------------------------------------
--- Fuer die Aufgabe legen wir explizit die geforderten Indizes
--- auf Produktname, Marke und Kategorie an.
+-- Für die Aufgabe legen wir die geforderten Indizes auf Produktname, Marke und Kategorie an.
 
 SET @s = IF(
     EXISTS(SELECT 1 FROM information_schema.statistics
@@ -35,7 +34,7 @@ SET @s = IF(
     'CREATE INDEX idx_products_category_id ON products(category_id)');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Optionaler Zusatzindex fuer Bereichsabfragen und Sortierung nach Preis.
+-- Optionaler Zusatzindex für Bereichsabfragen und Sortierung nach Preis.
 SET @s = IF(
     EXISTS(SELECT 1 FROM information_schema.statistics
            WHERE table_schema = DATABASE() AND table_name = 'products'
@@ -46,24 +45,24 @@ PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 
 -- ---------------------------------------------------------
--- 2) Warum verwendet MySQL hier B-Baeume?
+-- 2) Warum verwendet MySQL hier B-Bäume?
 -- ---------------------------------------------------------
 /*
-InnoDB nutzt standardmaessig B+-Tree-Indizes. Das ist hier sinnvoll, weil:
+InnoDB nutzt standardmäßig B+-Tree-Indizes. Das ist hier sinnvoll, weil:
 
 1. Suche mit O(log n):
    Exakte Suchen (z. B. WHERE name = '...') bleiben auch bei vielen
-   Datensaetzen schnell.
+   Datensätzen schnell.
 
 2. Bereichsabfragen und Sortierung:
    Durch die sortierte Blattstruktur funktionieren BETWEEN, >, < und
    ORDER BY effizient.
 
-3. Stabilitaet durch Balancierung:
+3. Stabilität durch Balancierung:
    Der Baum bleibt ausgeglichen. Dadurch bleiben Antwortzeiten planbar,
-   auch wenn Daten laufend eingefuegt/geaendert werden.
+   auch wenn Daten laufend eingefügt/geändert werden.
 
-4. Praefix-Suche:
+4. Präfix-Suche:
    LIKE 'abc%' kann den B+-Tree nutzen. LIKE '%abc%' kann den Index
    dagegen in der Regel nicht verwenden.
 */
@@ -98,7 +97,7 @@ FROM products
 WHERE price BETWEEN 50.00 AND 150.00
 ORDER BY price;
 
--- 3.5 Gegenbeispiel: Fuehrendes Wildcard verhindert normalerweise Indexnutzung.
+-- 3.5 Gegenbeispiel -> Führendes Wildcard verhindert normalerweise Indexnutzung.
 EXPLAIN SELECT id, name, price
 FROM products
 WHERE description LIKE '%racing%';
