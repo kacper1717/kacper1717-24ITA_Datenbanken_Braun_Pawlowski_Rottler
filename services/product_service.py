@@ -75,8 +75,10 @@ class ProductService:
             q_stats = index_service.get_index_status()
             qdrant_counts["indexed"] = q_stats.get("indexed_products", 0)
             qdrant_counts["status"] = q_stats.get("status", "unknown")
-            qdrant_counts["last_indexed_at"] = q_stats.get("last_indexed_at")
             qdrant_counts["embedding_model"] = q_stats.get("embedding_model")
+            # Extract last_indexed_at from last_runs (most recent first)
+            if last_runs:
+                qdrant_counts["last_indexed_at"] = last_runs[0].get("run_timestamp")
         except Exception as e:
             log.error(f"Error getting Qdrant stats: {e}")
 

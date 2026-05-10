@@ -5,7 +5,7 @@
 <div class="card mb-3">
   <div class="card-header">Status</div>
   <div class="card-body">
-    <p>Indexierte Produkte: <b>{{ status.count_indexed }}</b></p>
+    <p>Indexierte Produkte: <b>{{ status.indexed_products }}</b></p>
     <p>Letztes indexed_at: <b>{{ status.last_indexed_at or "-" }}</b></p>
     <p>Embedding Model: <b>{{ status.embedding_model or "-" }}</b></p>
     {% set info = status.collection_info or {} %}

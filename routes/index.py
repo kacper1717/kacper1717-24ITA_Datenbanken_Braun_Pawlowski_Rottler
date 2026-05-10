@@ -27,7 +27,7 @@ def _get_index_service_safe():
 def _empty_index_status() -> dict:
     """Safe default status for template rendering when service is unavailable."""
     return {
-        "count_indexed": 0,
+        "indexed_products": 0,
         "last_indexed_at": None,
         "embedding_model": None,
         "collection_info": {},

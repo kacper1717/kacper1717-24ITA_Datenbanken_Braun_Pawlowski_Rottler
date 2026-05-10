@@ -228,15 +228,16 @@ class IndexService:
         except Exception as e:
             log.error(f"Failed to get collection info: {e}")
 
-        # Get last indexed timestamp from MySQL
+        # Get last indexed timestamp from MySQL (extract from last runs)
         try:
-            dashboard_stats = self.mysql_repo.get_dashboard_stats()
-            last_indexed_at = dashboard_stats.get("last_indexed_at")
+            last_runs = self.mysql_repo.get_last_runs(limit=1)
+            if last_runs:
+                last_indexed_at = last_runs[0].get("run_timestamp")
         except Exception as e:
             log.error(f"Failed to get last indexed timestamp: {e}")
 
         return {
-            "count_indexed": count_indexed,
+            "indexed_products": count_indexed,
             "last_indexed_at": last_indexed_at,
             "collection_info": collection_info,
             "embedding_model": current_app.config.get(

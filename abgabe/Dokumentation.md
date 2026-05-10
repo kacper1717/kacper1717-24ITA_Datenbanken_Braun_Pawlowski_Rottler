@@ -18,7 +18,7 @@
 - **Repositories:** Kapseln den direkten Zugriff auf Persistenzschichten:
   - **MySQLRepository:** SQL-Queries, Transaktionen, Stored Procedures, Trigger/Audit.
   - **QdrantRepository:** Embedding-Upload, Vektor-Suche, Collection-Management.
-  - **Neo4jRepository (optional):** Cypher-Abfragen und Graph-Upserts zur Anreicherung.
+  - **Neo4jRepository:** Cypher-Abfragen und Graph-Upserts zur Anreicherung.
 
 3. Datenbanken & Rollen
 
@@ -30,8 +30,7 @@
   - Wird per ETL aus MySQL befüllt (Textdokument pro Produkt → Embedding → Upload).
   - Nutzt HNSW-Index (ANN) für schnelle Relevanzsuche.
 
-- **Neo4j (optional):** Modelliert Beziehungen als Graph zum Traversieren/Enrichen
-  (z. B. verwandte Produkte, Markenbeziehungen). Füllt sich per Sync/ETL.
+- **Neo4j:** Modelliert Beziehungen als Graph zum Traversieren/Enrichen (z. B. verwandte Produkte, Markenbeziehungen). Die Befüllung erfolgt manuell über ein dediziertes Sync-Skript.
 
 4. Typische Datenflüsse
 
@@ -47,7 +46,6 @@
 
 - Unidirektionaler Datenfluss: MySQL → ETL → Qdrant/Neo4j. MySQL bleibt Single Source of Truth.
 - Risiko: Zeitliche Inkonsistenzen zwischen MySQL und Qdrant/Neo4j wenn ETL fehlschlägt oder verzögert.
-- Empfehlung: idempotente Upserts, ETL-Run-Log, Monitoring, evtl. Near‑Realtime-Events (z. B. CDC) bei strengeren Konsistenzanforderungen.
 
 6. Transaktionen & Integrität
 
@@ -59,14 +57,13 @@
 7. Suche: Strategie und Verantwortlichkeiten
 
 - **SQL:** Gut für exakte Filtersuchen, ACID-sichere Abfragen, niedrige Latenz; limitiert bei Freitext.
-- **Vektor:** Liefert semantische Treffer und Relevanzrankings; benötigt ETL und ist approximate (ANN).
-- **RAG / Graph-RAG:** Kombiniert Retrieval + LLM (optional Neo4j) für natürliche Antworten und relationale Anreicherung;
+- **Vektor:** Liefert semantische Treffer und Relevanzrankings, benötigt ETL und ist approximate (ANN).
+- **RAG / Graph-RAG:** Kombiniert Retrieval + LLM (optional Neo4j) für natürliche Antworten und relationale Anreicherung,
   trade-offs: Latenz, Kosten (API) und Halluzinationsrisiken.
 
 8. Betrieb & Deployment
 
 - Containerisiert per `docker-compose.yml` + `Dockerfile` (MySQL, Qdrant, Neo4j, App). Lokales Testing via Compose empfohlen.
-- Produktionsreife: Ausrollen in orchestrierter Umgebung (K8s), persistent storage, Backups für MySQL/Neo4j, Scaling für Qdrant und Modell‑Serving.
 
 9. Überwachung & Observability
 
@@ -77,7 +74,6 @@
 
 - Roh-SQL-Ausführung nur als SELECT mit Whitelist/Regex-Checks.
 - Validierung serverseitig (Procedures + CHECKs) reduziert fehlerhafte Daten.
-- Rollen/Authentifizierung sind nicht Teil des Skeletons — für Produktion ergänzen.
 
 11. App-Dokumentation
 
@@ -106,12 +102,6 @@
 - Über die Suchseite kann er zwischen SQL-Suche, semantischer Vektorsuche und RAG wechseln.
 - Bei Bedarf werden PDFs hochgeladen, indexiert und anschließend ebenfalls durchsucht.
 
-### Start und Betrieb
-
-- Die Anwendung läuft standardmäßig im Flask-Container auf Port 5000 und wird per Docker Compose nach außen auf Port 8081 freigegeben.
-- Im lokalen Entwicklungsmodus wird die App direkt über `python app.py` gestartet.
-- Damit die Kernfunktionen arbeiten, müssen MySQL und Qdrant erreichbar sein; Neo4j ist optional.
-
 ### Bedienlogik der Hauptfunktionen
 
 - **Produktanzeige:** Die Route liest paginierte Produktdaten aus MySQL und rendert sie im Template.
@@ -122,9 +112,3 @@
   - RAG kombiniert Suchergebnisse mit einem LLM für eine formulierte Antwort.
 - **Validierung:** Die App prüft, ob Schema, Tabellen und Datenregeln zu den erwarteten Strukturen passen.
 - **Audit:** Historische Läufe und Änderungen werden angezeigt, um Datenimporte und Anpassungen nachvollziehbar zu machen.
-
-### Grenzen der App im aktuellen Stand
-
-- Nicht jede Route ist bereits vollständig implementiert; einige Bereiche sind als Platzhalter oder TODO angelegt.
-- Die App ist primär als Projekt- und Lehranwendung ausgelegt, nicht als produktives System mit Login, Rollenmodell und vollständigem Rechtekonzept.
-- Die semantischen Funktionen hängen von der Verfügbarkeit der externen Dienste und des Embedding-Modells ab.
