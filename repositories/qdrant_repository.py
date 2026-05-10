@@ -78,10 +78,10 @@ class QdrantRepositoryImpl(QdrantRepository):
             qdrant_url: Qdrant server URL
             default_collection: Default collection name for products
         """
-        # NOTE (Skeleton): Für viele Aufgaben (z.B. /products) wird Qdrant nicht benötigt.
+        # Hinweis (Skeleton): Für viele Aufgaben (z. B. /products) wird Qdrant nicht benötigt.
         # Trotzdem wird der ProductService über die Factory immer mit einem Qdrant-Repo
-        # instanziiert. Damit /products nicht an einem Stub scheitert, initialisiert man
-        # hier den Client minimal.
+        # instanziiert. Damit /products nicht an einem Stub scheitert, wird der Client
+        # hier minimal initialisiert.
         self.qdrant_url = qdrant_url
         self.default_collection = default_collection
         self.client = QdrantClient(url=qdrant_url)

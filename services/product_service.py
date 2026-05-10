@@ -76,7 +76,7 @@ class ProductService:
             qdrant_counts["indexed"] = q_stats.get("indexed_products", 0)
             qdrant_counts["status"] = q_stats.get("status", "unknown")
             qdrant_counts["embedding_model"] = q_stats.get("embedding_model")
-            # Extract last_indexed_at from last_runs (most recent first)
+            # last_indexed_at aus last_runs extrahieren (neueste zuerst)
             if last_runs:
                 qdrant_counts["last_indexed_at"] = last_runs[0].get("run_timestamp")
         except Exception as e:
@@ -151,19 +151,19 @@ class ProductService:
         Returns:
             Validation report dictionary
         """
-        # Check core tables (have 'id' column)
+        # Kerntabellen prüfen (haben eine 'id'-Spalte)
         core_tables = ["products", "brands", "categories", "tags", "etl_run_log"]
-        # Junction tables (no 'id' column, use composite keys)
+        # Zwischentabellen (keine 'id'-Spalte, verwenden zusammengesetzte Schlüssel)
         junction_tables = ["product_tags"]
         
         missing_tables = []
         
-        # Verify core tables have 'id' column
+        # Prüfen, ob die Kerntabellen eine 'id'-Spalte haben
         for table in core_tables:
             if not self.mysql_repo.has_column(table, "id"):
                 missing_tables.append(table)
         
-        # Verify junction tables exist (check for at least one expected column)
+        # Prüfen, ob die Zwischentabellen existieren (mindestens eine erwartete Spalte prüfen)
         for table in junction_tables:
             if not self.mysql_repo.has_column(table, "product_id"):
                 missing_tables.append(table)

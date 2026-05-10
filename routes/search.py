@@ -48,11 +48,11 @@ def search():
 
         elif search_type == "pdf":
             try:
-                # Request more results to account for deduplication
+                # Mehr Ergebnisse anfordern, um die Deduplizierung auszugleichen
                 pdf_result = search_service.pdf_rag_search(query, topk=topk * 2)
                 raw_hits = pdf_result.get("hits", []) if pdf_result else []
                 
-                # Deduplicate by (source, page) - keep only unique PDF pages
+                # Nach (Quelle, Seite) deduplizieren - nur eindeutige PDF-Seiten behalten
                 seen = set()
                 results = []
                 for r in raw_hits:
@@ -67,7 +67,7 @@ def search():
                             "score": r.get("score", 0),
                             "text": r.get("text", ""),
                         })
-                    # Stop after we have enough results
+                    # Sobald genug Ergebnisse vorhanden sind, abbrechen
                     if len(results) >= topk:
                         break
                 answer = pdf_result.get("answer") if pdf_result else None
@@ -84,7 +84,7 @@ def search():
                     use_graph_enrichment=search_type == "graph",
                 )
                 raw_hits = rag_result.get("hits", [])
-                # Konsistent mit vector-search formatieren
+                # Konsistent mit der Vektorsuche formatieren
                 results = [
                     {
                         "title": r.get("name", ""),
