@@ -48,17 +48,28 @@ def search():
 
         elif search_type == "pdf":
             try:
-                pdf_result = search_service.pdf_rag_search(query, topk=topk)
+                # Request more results to account for deduplication
+                pdf_result = search_service.pdf_rag_search(query, topk=topk * 2)
                 raw_hits = pdf_result.get("hits", []) if pdf_result else []
-                results = [
-                    {
-                        "source": r.get("source", ""),
-                        "page": r.get("page", ""),
-                        "score": r.get("score"),
-                        "text": r.get("text", ""),
-                    }
-                    for r in raw_hits
-                ]
+                
+                # Deduplicate by (source, page) - keep only unique PDF pages
+                seen = set()
+                results = []
+                for r in raw_hits:
+                    source = r.get("source", "")
+                    page = r.get("page", "")
+                    key = (source, page)
+                    if key not in seen:
+                        seen.add(key)
+                        results.append({
+                            "source": source,
+                            "page": page,
+                            "score": r.get("score", 0),
+                            "text": r.get("text", ""),
+                        })
+                    # Stop after we have enough results
+                    if len(results) >= topk:
+                        break
                 answer = pdf_result.get("answer") if pdf_result else None
             except Exception as e:
                 log.exception("PDF search error")

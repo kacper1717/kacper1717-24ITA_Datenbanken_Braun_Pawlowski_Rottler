@@ -328,7 +328,7 @@
                     {% if search_type == 'pdf' %}
                         <strong>{{ result.source }}</strong>
                         <span class="badge bg-primary">Seite {{ result.page }}</span>
-                        <span class="badge bg-info text-dark">Score: {{ result.score }}%</span>
+                        <span class="badge bg-info text-dark">Score: {{ (result.score * 100)|round(1) }}%</span>
                         <p class="mt-2">{{ result.text }}</p>
                     {% else %}
                         <strong>{{ result.title }}</strong>
