@@ -149,26 +149,39 @@ class SearchService:
         if use_graph_enrichment and self.neo4j_repo:
             ids = self._coerce_ints(hit.get("id") for hit in hits)
             if ids:
+                # 1. Metadaten-Enrichment (bestehend)
                 enrichment = self.neo4j_repo.get_product_relationships(ids)
+                
+                # 2. Für jedes Produkt verwandte Produkte holen (NEU - echter Graph-Vorteil!)
                 for hit in enriched_hits:
                     hit_id = self._coerce_int(hit.get("id"))
                     if hit_id is None:
                         continue
+                    
+                    # Metadaten anwenden
                     graph_data = enrichment.get(hit_id)
-                    if not graph_data:
-                        continue
-                    if graph_data.get("title"):
-                        hit["title"] = graph_data["title"]
-                        hit["name"] = graph_data["title"]
-                    if graph_data.get("brand"):
-                        hit["brand"] = graph_data["brand"]
-                    if graph_data.get("category"):
-                        hit["category"] = graph_data["category"]
-                    if graph_data.get("tags"):
-                        hit["tags"] = graph_data["tags"]
-                    hit["graph_source"] = "Neo4j"
+                    if graph_data:
+                        if graph_data.get("title"):
+                            hit["title"] = graph_data["title"]
+                            hit["name"] = graph_data["title"]
+                        if graph_data.get("brand"):
+                            hit["brand"] = graph_data["brand"]
+                        if graph_data.get("category"):
+                            hit["category"] = graph_data["category"]
+                        if graph_data.get("tags"):
+                            hit["tags"] = graph_data["tags"]
+                        hit["graph_source"] = "Neo4j"
+                    
+                    # NEU: Verwandte Produkte über Graph-Traversierung finden
+                    try:
+                        related = self.neo4j_repo.get_related_products(hit_id, limit=3)
+                        if related:
+                            hit["related_products"] = related
+                            hit["graph_traversal"] = True
+                    except Exception as e:
+                        log.warning(f"Could not fetch related products for {hit_id}: {e}")
 
-        answer = self._generate_llm_answer(query, enriched_hits)
+        answer = self._generate_llm_answer(query, enriched_hits, use_graph_enrichment=use_graph_enrichment)
         return {"query": query, "answer": answer, "hits": enriched_hits, "strategy": strategy}
 
     def pdf_rag_search(
@@ -291,7 +304,7 @@ class SearchService:
             log.error(f"Error in SQL search: {e}")
             return []
 
-    def _generate_llm_answer(self, query: str, hits: list[dict]) -> str:
+    def _generate_llm_answer(self, query: str, hits: list[dict], use_graph_enrichment: bool = False) -> str:
         """
         Generate LLM answer based on search hits.
 
@@ -322,6 +335,13 @@ class SearchService:
             score = hit.get("score")
             if score is not None:
                 parts.append(f"Score: {score:.3f}" if isinstance(score, (int, float)) else f"Score: {score}")
+            
+            # NEU: Verwandte Produkte aus dem Graphen anzeigen
+            related = hit.get("related_products", [])
+            if related:
+                related_names = [r.get("title", r.get("name", "Unbekannt")) for r in related[:3]]
+                parts.append(f"Verwandte Produkte: {', '.join(related_names)}")
+            
             lines.append(" | ".join(parts))
 
         client = self._get_llm_client()
@@ -332,13 +352,25 @@ class SearchService:
             )
 
         model = current_app.config.get("LLM_MODEL", "gpt-4.1-mini")
-        prompt = (
-            "Du beantwortest kurze Produktanfragen auf Deutsch. "
-            "Nutze nur den gegebenen Kontext und nenne Unsicherheiten offen.\n\n"
-            f"Anfrage: {query}\n\n"
-            "Kontext:\n"
-            + "\n".join(lines)
-        )
+        # Unterschiedlicher Prompt je nachdem ob Graph-Traversierung genutzt wurde
+        if use_graph_enrichment:
+            prompt = (
+                "Du beantwortest kurze Produktanfragen auf Deutsch. "
+                "Nutze nur den gegebenen Kontext. "
+                "Wenn 'Verwandte Produkte' aufgeführt sind, erwähne sie als Empfehlungen. "
+                "Erkläre kurz, warum diese Produkte verwandt sind (gleiche Marke oder Kategorie).\n\n"
+                f"Anfrage: {query}\n\n"
+                "Gefundene Produkte mit verwandten Produkten:\n"
+                + "\n".join(lines)
+            )
+        else:
+            prompt = (
+                "Du beantwortest kurze Produktanfragen auf Deutsch. "
+                "Nutze nur den gegebenen Kontext und nenne Unsicherheiten offen.\n\n"
+                f"Anfrage: {query}\n\n"
+                "Kontext:\n"
+                + "\n".join(lines)
+            )
 
         try:
             response = client.chat.completions.create(
