@@ -149,10 +149,10 @@ class SearchService:
         if use_graph_enrichment and self.neo4j_repo:
             ids = self._coerce_ints(hit.get("id") for hit in hits)
             if ids:
-                # 1. Metadaten-Enrichment (bestehend)
+                # Metadaten-Enrichment
                 enrichment = self.neo4j_repo.get_product_relationships(ids)
                 
-                # 2. Für jedes Produkt verwandte Produkte holen (NEU - echter Graph-Vorteil!)
+                # 2. Für jedes Produkt verwandte Produkte holen
                 for hit in enriched_hits:
                     hit_id = self._coerce_int(hit.get("id"))
                     if hit_id is None:
@@ -172,7 +172,7 @@ class SearchService:
                             hit["tags"] = graph_data["tags"]
                         hit["graph_source"] = "Neo4j"
                     
-                    # NEU: Verwandte Produkte über Graph-Traversierung finden
+                    # Verwandte Produkte über Graph-Traversierung finden
                     try:
                         related = self.neo4j_repo.get_related_products(hit_id, limit=3)
                         if related:
@@ -336,7 +336,7 @@ class SearchService:
             if score is not None:
                 parts.append(f"Score: {score:.3f}" if isinstance(score, (int, float)) else f"Score: {score}")
             
-            # NEU: Verwandte Produkte aus dem Graphen anzeigen
+            # Verwandte Produkte aus dem Graphen anzeigen
             related = hit.get("related_products", [])
             if related:
                 related_names = [r.get("title", r.get("name", "Unbekannt")) for r in related[:3]]
