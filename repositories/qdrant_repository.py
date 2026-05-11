@@ -390,7 +390,7 @@ class QdrantRepositoryImpl(QdrantRepository):
         return len(qdrant_points)
 
     @staticmethod
-    def extract_pdf_chunks(pdf_file, chunk_size: int = 300) -> list[dict]:
+    def extract_pdf_chunks(pdf_file, chunk_size: int = 1000) -> list[dict]:
         """
         Extract text chunks from a PDF file.
 
