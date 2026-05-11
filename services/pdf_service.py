@@ -76,7 +76,7 @@ class PDFService:
         original = getattr(pdf_file, "filename", None) or "upload.pdf"
         return secure_filename(original) or "upload.pdf"
 
-    def _upload_pdf(self, pdf_file, collection_name: str, chunk_size: int = 1000) -> str:
+    def _upload_pdf(self, pdf_file, collection_name: str, chunk_size: int = 300) -> str:
         filename = self._safe_filename(pdf_file)
         chunks = self.qdrant_repo.extract_pdf_chunks(pdf_file, chunk_size=chunk_size)
         if not chunks:
@@ -97,7 +97,7 @@ class PDFService:
         return f"{filename} erfolgreich indexiert: {uploaded} Chunks in {collection_name}."
 
     def upload_pdf_to_qdrant(
-        self, pdf_file, collection_name: str = COLLECTION_PDF, chunk_size: int = 1000
+        self, pdf_file, collection_name: str = COLLECTION_PDF, chunk_size: int = 300
     ) -> str:
         """
         Upload a teaching PDF to Qdrant.
@@ -117,7 +117,7 @@ class PDFService:
             raise ValueError("Keine PDF-Datei übergeben.")
         return self._upload_pdf(pdf_file, collection_name=collection_name, chunk_size=chunk_size)
 
-    def upload_product_pdf(self, pdf_file, chunk_size: int = 1000) -> str:
+    def upload_product_pdf(self, pdf_file, chunk_size: int = 300) -> str:
         """
         Upload a product PDF to Qdrant.
 

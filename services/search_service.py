@@ -408,7 +408,6 @@ class SearchService:
             source = hit.get("source") or "Unbekannt"
             page = hit.get("page") or "?"
             text = (hit.get("text") or "").strip()
-            # MORE context: 800 chars instead of 240 to prevent hallucinations
             preview = text[:800] + ("..." if len(text) > 800 else "")
             excerpts.append(f"{index}. {source} | Seite {page}\n{preview}")
 
@@ -418,29 +417,28 @@ class SearchService:
 
         model = current_app.config.get("LLM_MODEL", "gpt-4.1-mini")
     
-        # Prompt with strict rules against hallucinations
+        # WENIGER STRENGER PROMPT – mehr Flexibilität
         prompt = (
             "Du beantwortest Fragen auf Deutsch anhand von PDF-Ausschnitten.\n\n"
-            "WICHTIGE REGELN:\n"
-            "1. Verwende AUSSCHLIESSLICH Informationen aus dem gegebenen Kontext.\n"
-            "2. Wenn eine Marke (wie Einhell, Bosch, Makita, DeWalt, Metabo) in einem Ausschnitt NICHT explizit genannt wird, ordne sie KEINEM Produkt zu.\n"
-            "3. Du darfst KEINE Marken erfinden oder zuordnen, die nicht im Kontext stehen.\n"
-            "4. Wenn die Frage nicht sicher beantwortet werden kann, sage: 'Dazu liegen im Kontext keine eindeutigen Informationen vor.'\n"
-            "5. Du halluzinierst nicht.\n\n"
+            "Richtlinien:\n"
+            "1. Nutze hauptsächlich den gegebenen Kontext.\n"
+            "2. Du kannst basierend auf dem Kontext plausible Schlussfolgerungen ziehen.\n"
+            "3. Wenn du unsicher bist, weise darauf hin ('nicht eindeutig', 'vermutlich').\n"
+            "4. Erfinde keine komplett neuen Informationen.\n\n"
             f"Frage: {query}\n\n"
-            "PDF-Ausschnitte (nur diese Informationen verwenden):\n"
+            "PDF-Ausschnitte:\n"
             + "\n\n".join(excerpts) +
-            "\n\nAntworte jetzt präzise und ehrlich auf Deutsch:"
+            "\n\nAntworte natürlich und hilfreich auf Deutsch:"
         )
 
         try:
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "Du bist ein hilfreicher Assistent. Du antwortest NUR basierend auf dem gegebenen Kontext. Du erfindest keine Informationen, keine Marken, keine Produkte. Wenn du etwas nicht weißt, sagst du das."},
+                    {"role": "system", "content": "Du bist ein hilfreicher Assistent. Du antwortest basierend auf dem gegebenen Kontext. Du darfst plausible Kombinationen machen, bleibst aber nah an den Fakten."},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.1,  # Lower temperature = less hallucinations
+                temperature=0.5,  # Weniger streng
             )
             content = response.choices[0].message.content if response.choices else None
             if content:
