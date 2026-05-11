@@ -311,7 +311,7 @@ interpretieren. Die LLM-Abhängigkeit bringt jedoch Kosten, Latenz und
 Halluzinationsrisiko mit sich.
 
 **Graph-RAG** ist dann sinnvoll, wenn Beziehungen zwischen Entitäten (Marken,
-Kategorien, Tags) für die Antwortqualität entscheidend sind – z. B. „Zeige mir
+Kategorien, Tags) für die Antwortqualität entscheidend sind –> z. B. „Zeige mir
 alle Produkte derselben Marke wie dieses". Die höchste Systemkomplexität und
 Latenz machen es zur aufwändigsten Option, rechtfertigt sich aber bei
 beziehungsreichen Daten.

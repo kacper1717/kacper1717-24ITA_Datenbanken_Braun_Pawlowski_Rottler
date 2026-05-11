@@ -45,7 +45,7 @@ Kurze Zusammenfassung der wichtigsten Erkenntnisse, Probleme und Best Practices 
 
 ## Transaktionen
 
-- `START TRANSACTION` / `COMMIT` / `ROLLBACK` müssen immer explizit gesetzt werden – MySQL öffnet sonst pro Statement eine eigene Auto-Commit-Transaktion.
+- `START TRANSACTION` / `COMMIT` / `ROLLBACK` müssen immer explizit gesetzt werden –> MySQL öffnet sonst pro Statement eine eigene Auto-Commit-Transaktion.
 - Fachliche Fehler (z. B. Duplikat-Check) lösen keinen automatischen Rollback aus; die Entscheidung COMMIT/ROLLBACK muss selbst per `IF`-Logik getroffen werden.
 - `ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)` in Verbindung mit `LAST_INSERT_ID()` ist idempotent und damit transaktionssicher wiederholbar.
 - Bei konsistenten Updates immer alle abhängigen Tabellen (hier: `product_tags`) im selben Block anfassen – nie nur die Haupttabelle updaten.
@@ -55,13 +55,13 @@ Kurze Zusammenfassung der wichtigsten Erkenntnisse, Probleme und Best Practices 
 
 - Trigger laufen unsichtbar im Hintergrund – `AFTER UPDATE` schreibt automatisch in die Audit-Tabelle, ohne dass der aufrufende Code davon wissen muss.
 - `OLD.<feld>` und `NEW.<feld>` geben innerhalb des Triggers Zugriff auf den Zustand vor und nach der Änderung.
-- `docker compose down -v` löscht auch die Audit-Tabelle – Audit-Logs müssen vorher gesichert werden, wenn sie relevant sind.
+- `docker compose down -v` löscht auch die Audit-Tabelle –> Audit-Logs müssen vorher gesichert werden, wenn sie relevant sind.
 - Trigger können nicht für `LOAD DATA INFILE` genutzt werden; bulk-importierte Daten landen nicht im Audit-Log.
 
 ## Indizes & Performance
 
 - Fremdschlüsselspalten (`brand_id`, `category_id`) sollten immer explizit indiziert werden – InnoDB legt für FKs keinen separaten Index an.
-- B+-Tree-Indizes (MySQL-Standard) unterstützen `=`, `BETWEEN`, `>`, `<` und `ORDER BY` effizient; ein führendes `%` in `LIKE '%abc%'` verhindert die Index-Nutzung.
+- B+-Tree-Indizes (MySQL-Standard) unterstützen `=`, `BETWEEN`, `>`, `<` und `ORDER BY` effizient, ein führendes `%` in `LIKE '%abc%'` verhindert die Index-Nutzung.
 - `EXPLAIN` zeigt, ob ein Index wirklich genutzt wird (`key`-Spalte); ohne vorherigen `ANALYZE TABLE` können veraltete Statistiken falsche Ergebnisse liefern.
 - Idempotentes Index-Anlegen: Vorher per `information_schema.statistics` prüfen, ob der Index schon existiert, statt blind `CREATE INDEX` auszuführen.
 

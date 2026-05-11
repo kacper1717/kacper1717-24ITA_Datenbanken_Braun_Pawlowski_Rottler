@@ -1,3 +1,7 @@
+## Teil 2 – Datenbanklogik & semantische Suche
+
+Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (8971956), Ruven Braun (6136649)
+
 # DB → VectorDB Manager
 
 Flask-Anwendung für eine Datenbank-Projektarbeit mit MySQL als Source of Truth, Qdrant für semantische Suche, optionalem Neo4j-Enrichment und RAG-Funktionen über ein LLM.
@@ -86,32 +90,6 @@ Typische Bereiche in der App:
 - PDF-Upload und PDF-RAG
 - Validierung und Audit
 
-## Entwicklung lokal
-
-Für einen direkten Start außerhalb von Docker werden zunächst die Abhängigkeiten installiert:
-
-```bash
-pip install -r requirements.txt
-```
-
-Anschließend kann die Flask-Anwendung mit folgendem Befehl gestartet werden:
-
-```bash
-python3 app.py
-```
-
-Hinweis: Für einen sinnvollen Lauf müssen MySQL, Qdrant und optional Neo4j erreichbar sein und die passenden Umgebungsvariablen gesetzt sein.
-
-## Tests
-
-Für die SQL-Übungen und Beispieltests gibt es ein eigenes Skript:
-
-```bash
-bash tests/run_tests.sh
-```
-
-Das Skript erwartet eine erreichbare MySQL-Instanz und verwendet die SQL-Dateien aus `src/sql/` zusammen mit dem Seed aus `tests/fixtures/seed.sql`.
-
 ## Projektstruktur
 
 - `app.py` - Flask Application Factory
@@ -125,11 +103,14 @@ Das Skript erwartet eine erreichbare MySQL-Instanz und verwendet die SQL-Dateien
 - `abgabe/` - Abgabeunterlagen und SQL-Teile
 - `tests/` - Testskripte und Fixtures
 
-## Wichtige Hinweise
+## SQL-Skripte
 
-- Wenn Vektorsuche oder RAG nur Platzhalter liefern, prüfe zuerst, ob der Index in Qdrant neu aufgebaut wurde.
-- Wenn Neo4j nicht verfügbar ist, bleibt die App trotzdem lauffähig; Graph-RAG ist dann nur eingeschränkt.
-- Wenn `OPENAI_API_KEY` fehlt, nutzt die App einen Fallback für RAG-Antworten.
+Die SQL-Dateien aus `abgabe/Teil_2/` können analog zu Teil 1 im Adminer (`http://localhost:8990`) ausgeführt werden – siehe `abgabe/Teil_1/README_Teil1.md`.
+
+## Besonderheiten
+
+- Wenn Neo4j nicht verfügbar ist, bleibt die Graph-LLM-Suche trotzdem funktionsfähig -> implementiert über `NoOpNeo4jRepository` in `repositories/__init__.py` und `neo4j_repository.py`.
+- Wenn `OPENAI_API_KEY` fehlt, nutzt die App einen Fallback für RAG-Antworten (siehe `services/search_service.py`).
 
 ## Referenz
 
