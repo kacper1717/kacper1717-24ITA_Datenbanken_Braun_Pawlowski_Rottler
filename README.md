@@ -1,7 +1,5 @@
 ## Teil 2 – Datenbanklogik & semantische Suche
 
-Name, (MatrNr): Kacper Pawlowski (5022043), Marco Rottler (8971956), Ruven Braun (6136649)
-
 # DB → VectorDB Manager
 
 Flask-Anwendung für eine Datenbank-Projektarbeit mit MySQL als Source of Truth, Qdrant für semantische Suche, optionalem Neo4j-Enrichment und RAG-Funktionen über ein LLM.
